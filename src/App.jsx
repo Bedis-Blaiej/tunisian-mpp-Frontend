@@ -387,6 +387,23 @@ function MatchCard({ match, leagueId, existingPrediction }) {
   const [submitted, setSubmitted] = useState(!!existingPrediction);
   const [loading, setLoading] = useState(false);
   
+  useEffect(() => {
+    if (existingPrediction) {
+        setPrediction({
+            home: existingPrediction.predicted_home_goals,
+            away: existingPrediction.predicted_away_goals,
+            x2: existingPrediction.x2_applied
+        });
+        setSubmitted(true);
+    } else {
+        setSubmitted(false);
+        setPrediction({
+            home: '',
+            away: '',
+            x2: false
+        });
+    }
+}, [existingPrediction]);
   // Check if X2 is available in this gameweek
   const { data: x2Status } = useQuery({
     queryKey: ['x2-status', match.gameweek, leagueId],
