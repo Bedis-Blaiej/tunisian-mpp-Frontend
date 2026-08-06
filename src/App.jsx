@@ -253,8 +253,8 @@ const { data: leagues, isLoading, refetch } = useQuery({
 function LeagueDetailPage({ leagueId, onBack }) {
   const [gameweek, setGameweek] = useState(1);
 
-  // Fetch matches
-  const { data: matches } = useQuery({
+  // Fetch matches for this gameweek
+  const { data: matches, isLoading: matchesLoading } = useQuery({
     queryKey: ['matches', gameweek],
     queryFn: async () => {
       const response = await api.get('/matches', { params: { gameweek } });
@@ -271,6 +271,27 @@ function LeagueDetailPage({ leagueId, onBack }) {
     },
   });
 
+  // Fetch user's predictions for this league
+  const { data: userPredictions } = useQuery({
+    queryKey: ['user-predictions', leagueId],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/user/predictions', {
+          params: { league_id: leagueId }
+        });
+        return response.data;
+      } catch (err) {
+        console.error('Error fetching predictions:', err);
+        return [];
+      }
+    },
+  });
+
+  // Get prediction for a specific match
+  const getPredictionForMatch = (matchId) => {
+    return userPredictions?.find(p => p.match_id === matchId);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-6xl mx-auto">
@@ -278,7 +299,7 @@ function LeagueDetailPage({ leagueId, onBack }) {
           onClick={onBack}
           className="mb-4 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
         >
-          ← Back
+          ← Back to Leagues
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -291,6 +312,7 @@ function LeagueDetailPage({ leagueId, onBack }) {
                   <button
                     onClick={() => setGameweek(Math.max(1, gameweek - 1))}
                     className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
+                    disabled={gameweek === 1}
                   >
                     ← Prev
                   </button>
@@ -303,15 +325,22 @@ function LeagueDetailPage({ leagueId, onBack }) {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                {matches && matches.length > 0 ? (
-                  matches.map((match) => (
-                    <MatchCard key={match.id} match={match} leagueId={leagueId} />
-                  ))
-                ) : (
-                  <p className="text-gray-600">No matches for this gameweek</p>
-                )}
-              </div>
+              {matchesLoading ? (
+                <p className="text-gray-600">Loading matches...</p>
+              ) : matches && matches.length > 0 ? (
+                <div className="space-y-4">
+                  {matches.map((match) => (
+                    <MatchCard 
+                      key={match.id} 
+                      match={match} 
+                      leagueId={leagueId}
+                      existingPrediction={getPredictionForMatch(match.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600">No matches for this gameweek</p>
+              )}
             </div>
           </div>
 
@@ -340,12 +369,18 @@ function LeagueDetailPage({ leagueId, onBack }) {
 }
 
 
-function MatchCard({ match, leagueId }) {
-  const [prediction, setPrediction] = useState({ home: '', away: '', x2: false });
-  const [submitted, setSubmitted] = useState(false);
+function MatchCard({ match, leagueId, existingPrediction }) {
+  const [prediction, setPrediction] = useState({
+    home: existingPrediction?.predicted_home_goals || '',
+    away: existingPrediction?.predicted_away_goals || '',
+    x2: existingPrediction?.x2_applied || false
+  });
+  const [submitted, setSubmitted] = useState(!!existingPrediction);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     
     try {
       await api.post('/predictions', {
@@ -359,11 +394,15 @@ function MatchCard({ match, leagueId }) {
       
       setSubmitted(true);
     } catch (err) {
-      alert('Error submitting prediction: ' + err.response?.data?.detail);
+      alert('Error submitting prediction: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
   const isLocked = new Date(match.kickoff_time) <= new Date();
+  const timeUntilLockdown = new Date(match.kickoff_time).getTime() - Date.now();
+  const minutesLeft = Math.floor(timeUntilLockdown / 60000);
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow transition">
@@ -376,14 +415,27 @@ function MatchCard({ match, leagueId }) {
         </div>
       </div>
 
+      {/* Match Status */}
       {match.status === 'finished' ? (
         <div className="text-lg font-bold text-green-600">
           Final: {match.home_goals}-{match.away_goals}
         </div>
-      ) : submitted ? (
-        <div className="text-green-600 font-semibold">✓ Prediction submitted</div>
       ) : isLocked ? (
-        <div className="text-red-600 font-semibold">Match locked</div>
+        <div className="text-red-600 font-semibold">
+          ❌ Prediction Locked (Match starting in {minutesLeft < 0 ? 'now' : minutesLeft + ' min'})
+        </div>
+      ) : submitted ? (
+        <div>
+          <div className="text-green-600 font-semibold mb-2">
+            ✓ Prediction: {prediction.home}-{prediction.away} {prediction.x2 ? '(x2)' : ''}
+          </div>
+          <button
+            onClick={() => setSubmitted(false)}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Edit prediction
+          </button>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="flex gap-2 items-end">
@@ -418,13 +470,19 @@ function MatchCard({ match, leagueId }) {
             </label>
             <button
               type="submit"
-              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm font-semibold"
+              disabled={loading}
+              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm font-semibold disabled:opacity-50"
             >
-              Submit
+              {loading ? 'Saving...' : 'Submit'}
             </button>
           </div>
         </form>
       )}
+
+      {/* Odds Display */}
+      <div className="mt-2 text-xs text-gray-500">
+        Odds: {match.odds_home} | Draw {match.odds_draw} | {match.odds_away}
+      </div>
     </div>
   );
 }
