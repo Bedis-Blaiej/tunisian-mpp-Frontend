@@ -130,11 +130,16 @@ function LeaguesPage({ user, onSelectLeague }) {
   const [inviteCode, setInviteCode] = useState('');
 
   // Fetch user's leagues (empty for now)
-  const { data: leagues, isLoading, refetch } = useQuery({
+const { data: leagues, isLoading, refetch } = useQuery({
     queryKey: ['leagues', user.id],
     queryFn: async () => {
-      // TODO: Create endpoint to get user's leagues
-      return [];
+      try {
+        const response = await api.get('/user/leagues');
+        return response.data;
+      } catch (err) {
+        console.error('Error fetching leagues:', err);
+        return [];
+      }
     },
   });
 
