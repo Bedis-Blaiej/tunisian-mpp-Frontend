@@ -529,6 +529,11 @@ function MatchCard({ match, leagueId, existingPrediction }) {
 
 
 // ============ MAIN APP WITH QUERY CLIENT PROVIDER ============
+// At top of App function
+useEffect(() => {
+  // Refetch all queries when user changes
+  queryClient.refetchQueries();
+}, [user]);
 
 export default function App() {
   const [user, setUser] = useState(null);
