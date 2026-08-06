@@ -529,23 +529,25 @@ function MatchCard({ match, leagueId, existingPrediction }) {
 
 
 // ============ MAIN APP WITH QUERY CLIENT PROVIDER ============
-// At top of App function
-useEffect(() => {
-  // Refetch all queries when user changes
-  queryClient.refetchQueries();
-}, [user]);
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [selectedLeague, setSelectedLeague] = useState(null);
 
+  // Load user on mount
   useEffect(() => {
-    // Check if user is logged in
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  // Refetch predictions when user changes
+  useEffect(() => {
+    if (user) {
+      queryClient.refetchQueries();
+    }
+  }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
