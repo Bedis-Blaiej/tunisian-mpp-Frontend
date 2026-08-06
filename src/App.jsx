@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+
 import { QueryClient, QueryClientProvider, useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 
@@ -271,9 +272,10 @@ function LeagueDetailPage({ leagueId, onBack }) {
     },
   });
 
+  
   // Fetch user's predictions for this league
-  const { data: userPredictions } = useQuery({
-    queryKey: ['user-predictions', leagueId],
+  const { data: userPredictions, refetch: refetchPredictions } = useQuery({
+    queryKey: ['user-predictions', leagueId, gameweek],  // ← ADD gameweek to key
     queryFn: async () => {
       try {
         const response = await api.get('/user/predictions', {
@@ -285,7 +287,14 @@ function LeagueDetailPage({ leagueId, onBack }) {
         return [];
       }
     },
+    staleTime: 0,  // ← Don't cache, always fetch fresh
+    gcTime: 0,     // ← Don't keep in memory
   });
+  
+  // Refetch predictions when gameweek changes
+  useEffect(() => {
+    refetchPredictions();
+  }, [gameweek, refetchPredictions]);
 
   // Get prediction for a specific match
   const getPredictionForMatch = (matchId) => {
