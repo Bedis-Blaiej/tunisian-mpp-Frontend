@@ -377,6 +377,21 @@ function MatchCard({ match, leagueId, existingPrediction }) {
   });
   const [submitted, setSubmitted] = useState(!!existingPrediction);
   const [loading, setLoading] = useState(false);
+  
+  // Check if X2 is available in this gameweek
+  const { data: x2Status } = useQuery({
+    queryKey: ['x2-status', match.gameweek, leagueId],
+    queryFn: async () => {
+      try {
+        const response = await api.get(`/predictions/x2-status/${match.gameweek}`, {
+          params: { league_id: leagueId }
+        });
+        return response.data;
+      } catch (err) {
+        return { x2_used: false, used_for_match: null };
+      }
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -403,6 +418,10 @@ function MatchCard({ match, leagueId, existingPrediction }) {
   const isLocked = new Date(match.kickoff_time) <= new Date();
   const timeUntilLockdown = new Date(match.kickoff_time).getTime() - Date.now();
   const minutesLeft = Math.floor(timeUntilLockdown / 60000);
+  
+  // X2 is disabled if already used in this gameweek AND not used on this match
+  const x2Disabled = x2Status?.x2_used && !existingPrediction?.x2_applied;
+  const x2Message = x2Status?.x2_used ? `X2 already used for ${x2Status.used_for_match}` : null;
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow transition">
@@ -438,7 +457,7 @@ function MatchCard({ match, leagueId, existingPrediction }) {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-2">
-          <div className="flex gap-2 items-end">
+          <div className="flex gap-2 items-end flex-wrap">
             <input
               type="number"
               min="0"
@@ -460,14 +479,19 @@ function MatchCard({ match, leagueId, existingPrediction }) {
               className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
               required
             />
-            <label className="flex items-center gap-1 text-sm">
+            
+            {/* X2 Checkbox with Disabled State */}
+            <label className={`flex items-center gap-1 text-sm ${x2Disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
               <input
                 type="checkbox"
                 checked={prediction.x2}
-                onChange={(e) => setPrediction({ ...prediction, x2: e.target.checked })}
+                onChange={(e) => !x2Disabled && setPrediction({ ...prediction, x2: e.target.checked })}
+                disabled={x2Disabled}
+                title={x2Message || "Use X2 bonus (once per gameweek)"}
               />
               x2
             </label>
+            
             <button
               type="submit"
               disabled={loading}
@@ -476,6 +500,13 @@ function MatchCard({ match, leagueId, existingPrediction }) {
               {loading ? 'Saving...' : 'Submit'}
             </button>
           </div>
+          
+          {/* X2 Message */}
+          {x2Message && (
+            <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
+              ⚠️ {x2Message} in Gameweek {match.gameweek}
+            </div>
+          )}
         </form>
       )}
 
