@@ -546,6 +546,162 @@ function MatchCard({ match, leagueId, existingPrediction }) {
 
 
 // ============ MAIN APP WITH QUERY CLIENT PROVIDER ============
+function AdminPage({ user, onBack }) {
+  const [gameweek, setGameweek] = useState(1);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [homeGoals, setHomeGoals] = useState('');
+  const [awayGoals, setAwayGoals] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  // Fetch matches
+  const { data: matches } = useQuery({
+    queryKey: ['admin-matches', gameweek],
+    queryFn: async () => {
+      const response = await api.get('/matches', { params: { gameweek } });
+      return response.data.filter(m => m.status !== 'finished');
+    },
+  });
+
+  const handleSetResult = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const response = await api.put(
+        `/admin/matches/${selectedMatch.id}/result`,
+        null,
+        {
+          params: {
+            home_goals: parseInt(homeGoals),
+            away_goals: parseInt(awayGoals)
+          }
+        }
+      );
+
+      setMessage(`✅ Result set: ${selectedMatch.home_team} ${homeGoals}-${awayGoals} ${selectedMatch.away_team}`);
+      setSelectedMatch(null);
+      setHomeGoals('');
+      setAwayGoals('');
+    } catch (err) {
+      setMessage(`❌ Error: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-4xl mx-auto">
+        <button
+          onClick={onBack}
+          className="mb-4 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+        >
+          ← Back
+        </button>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <h1 className="text-3xl font-bold text-gray-800 mb-6">⚙️ Admin Dashboard</h1>
+
+          <div className="mb-6">
+            <label className="block text-sm font-semibold mb-2">Select Gameweek:</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setGameweek(Math.max(1, gameweek - 1))}
+                className="bg-gray-300 px-3 py-1 rounded"
+              >
+                ← Prev
+              </button>
+              <span className="px-4 py-1 bg-blue-100 rounded font-bold">GW {gameweek}</span>
+              <button
+                onClick={() => setGameweek(gameweek + 1)}
+                className="bg-gray-300 px-3 py-1 rounded"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h2 className="text-xl font-bold mb-4">Upcoming Matches (GW {gameweek})</h2>
+            <div className="space-y-2">
+              {matches?.map(match => (
+                <div
+                  key={match.id}
+                  onClick={() => setSelectedMatch(match)}
+                  className={`p-4 border rounded cursor-pointer transition ${
+                    selectedMatch?.id === match.id
+                      ? 'bg-blue-100 border-blue-500'
+                      : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="flex justify-between">
+                    <span className="font-semibold">{match.home_team} vs {match.away_team}</span>
+                    <span className="text-sm text-gray-600">{new Date(match.kickoff_time).toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {selectedMatch && (
+            <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+              <h3 className="text-lg font-bold mb-4">Set Result: {selectedMatch.home_team} vs {selectedMatch.away_team}</h3>
+              
+              <form onSubmit={handleSetResult} className="space-y-4">
+                <div className="flex gap-4 items-end">
+                  <div>
+                    <label className="block text-sm font-semibold mb-1">{selectedMatch.home_team} Goals:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={homeGoals}
+                      onChange={(e) => setHomeGoals(e.target.value)}
+                      className="w-24 px-3 py-2 border border-gray-300 rounded text-center text-2xl font-bold"
+                      required
+                    />
+                  </div>
+
+                  <span className="text-2xl font-bold">-</span>
+
+                  <div>
+                    <label className="block text-sm font-semibold mb-1">{selectedMatch.away_team} Goals:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={awayGoals}
+                      onChange={(e) => setAwayGoals(e.target.value)}
+                      className="w-24 px-3 py-2 border border-gray-300 rounded text-center text-2xl font-bold"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-green-600 text-white px-6 py-2 rounded font-semibold hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {loading ? 'Setting...' : 'Set Result'}
+                  </button>
+                </div>
+              </form>
+
+              {message && (
+                <div className={`mt-4 p-3 rounded ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {message}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -576,32 +732,43 @@ export default function App() {
     return <LoginPage onLogin={setUser} />;
   }
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <div>
-        <nav className="bg-blue-600 text-white p-4">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <h1 className="text-xl font-bold">⚽ Tunisian Score Prediction</h1>
-            <div className="flex items-center gap-4">
-              <span>{user.username}</span>
+return (
+  <QueryClientProvider client={queryClient}>
+    <div>
+      <nav className="bg-blue-600 text-white p-4">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-bold">⚽ Tunisian Score Prediction</h1>
+          <div className="flex items-center gap-4">
+            <span>{user.username}</span>
+            {/* Admin button - only show if username is "admin" */}
+            {user.username === "admin" && (
               <button
-                onClick={handleLogout}
-                className="bg-red-600 px-4 py-2 rounded hover:bg-red-700"
+                onClick={() => setSelectedLeague('admin')}
+                className="bg-purple-600 px-4 py-2 rounded hover:bg-purple-700 text-sm"
               >
-                Logout
+                ⚙️ Admin
               </button>
-            </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="bg-red-600 px-4 py-2 rounded hover:bg-red-700"
+            >
+              Logout
+            </button>
           </div>
-        </nav>
+        </div>
+      </nav>
 
-        {selectedLeague ? (
-          <LeagueDetailPage
-            leagueId={selectedLeague}
-            onBack={() => setSelectedLeague(null)}
-          />
-        ) : (
-          <LeaguesPage user={user} onSelectLeague={setSelectedLeague} />
-        )}
+{selectedLeague === 'admin' ? (
+  <AdminPage user={user} onBack={() => setSelectedLeague(null)} />
+) : selectedLeague ? (
+  <LeagueDetailPage
+    leagueId={selectedLeague}
+    onBack={() => setSelectedLeague(null)}
+  />
+) : (
+  <LeaguesPage user={user} onSelectLeague={setSelectedLeague} />
+)}
       </div>
     </QueryClientProvider>
   );
