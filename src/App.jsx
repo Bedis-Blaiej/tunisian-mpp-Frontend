@@ -351,29 +351,192 @@ function LeagueDetailPage({ leagueId, onBack }) {
                 <p className="text-gray-600">No matches for this gameweek</p>
               )}
             </div>
+            {/* Finished Matches */}
+          {matches && matches.some(m => m.status === 'finished') && (
+            <div className="bg-white rounded-lg shadow p-6 mt-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">📊 Finished Matches (GW {gameweek})</h3>
+              <div className="space-y-2">
+                {matches
+                  .filter(m => m.status === 'finished')
+                  .map(match => (
+                    <div key={match.id} className="flex justify-between items-center p-3 bg-green-50 border border-green-200 rounded">
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {match.home_team} vs {match.away_team}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {new Date(match.kickoff_time).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-green-600">
+                          {match.home_goals}-{match.away_goals}
+                        </p>
+                        <p className="text-xs text-gray-600">Final</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
           </div>
+              {/* Points Breakdown Panel */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">📊 Your Points Breakdown</h3>
+            
+            {userPredictions && userPredictions.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {userPredictions.map((pred) => (
+                  <div key={pred.id} className="border border-gray-200 rounded p-3 bg-gray-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {pred.home_team} vs {pred.away_team}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          You predicted: {pred.predicted_home_goals}-{pred.predicted_away_goals}
+                        </p>
+                        {pred.actual_home_goals !== null && (
+                          <p className="text-sm text-blue-600 font-semibold">
+                            Actual: {pred.actual_home_goals}-{pred.actual_away_goals}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        {pred.points_earned > 0 ? (
+                          <p className="text-2xl font-bold text-green-600">{pred.points_earned}</p>
+                        ) : (
+                          <p className="text-2xl font-bold text-gray-400">0</p>
+                        )}
+                        <p className="text-xs text-gray-600">points</p>
+                      </div>
+                    </div>
 
+                    {/* Points Breakdown */}
+                    {pred.points_earned > 0 && (
+                      <div className="bg-white rounded p-2 text-sm space-y-1 border-t border-gray-200 mt-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-700">Base points (correct result):</span>
+                          <span className="font-semibold">{pred.base_points}</span>
+                        </div>
+                        {pred.is_exact_match && (
+                          <div className="flex justify-between text-orange-600">
+                            <span>+ Exact score bonus:</span>
+                            <span className="font-semibold">+{pred.exact_bonus}</span>
+                          </div>
+                        )}
+                        {pred.x2_applied && (
+                          <div className="flex justify-between text-purple-600">
+                            <span>× X2 multiplier:</span>
+                            <span className="font-semibold">×2</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between border-t border-gray-200 pt-1 mt-1 font-bold">
+                          <span>Total:</span>
+                          <span className="text-green-600">{pred.points_earned}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status badges */}
+                    <div className="mt-2 flex gap-2">
+                      {pred.is_exact_match && (
+                        <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
+                          🎯 Exact
+                        </span>
+                      )}
+                      {pred.x2_applied && (
+                        <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
+                          ⚡ X2
+                        </span>
+                      )}
+                      {pred.match_status === "finished" && (
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                          ✓ Finished
+                        </span>
+                      )}
+                      {pred.match_status === "upcoming" && (
+                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                          ⏳ Upcoming
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600">No predictions yet. Submit one to see breakdown!</p>
+            )}
+          </div>
           {/* Leaderboard */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Leaderboard</h3>
-            <div className="space-y-3">
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">🏆 Leaderboard</h3>
+            <div className="space-y-2">
               {leaderboard && leaderboard.length > 0 ? (
-                leaderboard.map((entry) => (
-                  <div key={entry.user_id} className="flex justify-between items-center border-b pb-2">
-                    <div>
-                      <p className="font-semibold text-gray-800">#{entry.rank} {entry.username}</p>
+                leaderboard.map((entry) => {
+                  // Medal emoji based on rank
+                  let medal = "";
+                  if (entry.rank === 1) medal = "🥇";
+                  else if (entry.rank === 2) medal = "🥈";
+                  else if (entry.rank === 3) medal = "🥉";
+                  else medal = "#" + entry.rank;
+
+                  // Color based on rank
+                  let bgColor = "bg-white";
+                  if (entry.rank === 1) bgColor = "bg-yellow-50";
+                  else if (entry.rank === 2) bgColor = "bg-gray-50";
+                  else if (entry.rank === 3) bgColor = "bg-orange-50";
+
+                  return (
+                    <div
+                      key={entry.user_id}
+                      className={`flex justify-between items-center p-3 rounded border border-gray-200 ${bgColor} hover:shadow transition`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl font-bold w-8">{medal}</span>
+                        <div>
+                          <p className="font-semibold text-gray-800">{entry.username}</p>
+                          <p className="text-xs text-gray-600">
+                            {entry.rank === 1 ? "🔥 Leading" : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-blue-600">{entry.points}</p>
+                        <p className="text-xs text-gray-600">points</p>
+                      </div>
                     </div>
-                    <p className="text-blue-600 font-bold">{entry.points}pts</p>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <p className="text-gray-600 text-sm">No predictions yet</p>
+                <p className="text-gray-600">No predictions yet</p>
               )}
+            </div>
+
+            {/* Leaderboard Stats */}
+            {leaderboard && leaderboard.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-2 gap-4 text-center text-sm">
+                  <div>
+                    <p className="text-2xl font-bold text-green-600">
+                      {leaderboard[0].points}
+                    </p>
+                    <p className="text-gray-600">Top score</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-600">
+                      {leaderboard.length}
+                    </p>
+                    <p className="text-gray-600">Players</p>
+                  </div>
+                </div>
+              </div>
+            )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+
   );
 }
 
