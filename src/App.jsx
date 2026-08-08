@@ -867,7 +867,47 @@ function AdminPage({ user, onBack }) {
                   </button>
                 </div>
               </div>
-
+{/* FINISHED MATCHES */}
+              {matches && matches.some(m => m.status === 'finished') && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold mb-4 text-green-600">✓ Finished Matches (GW {gameweek})</h2>
+                  <div className="space-y-2">
+                    {matches
+                      .filter(m => m.status === 'finished')
+                      .map(match => (
+                        <div
+                          key={match.id}
+                          className="p-4 border-2 border-green-300 rounded bg-green-50 flex justify-between items-center"
+                        >
+                          <div>
+                            <div className="font-semibold">{match.home_team} vs {match.away_team}</div>
+                            <div className="text-2xl font-bold text-green-600">
+                              {match.home_goals}-{match.away_goals}
+                            </div>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              if (window.confirm(`Reset result for ${match.home_team} vs ${match.away_team}? All points will be recalculated.`)) {
+                                try {
+                                  const response = await api.put(`/admin/matches/${match.id}/reset`);
+                                  setMessage(`✅ ${response.data.message} (${response.data.predictions_reset} predictions reset)`);
+                                  // Refetch matches
+                                  const newMatches = await api.get('/matches', { params: { gameweek } });
+                                  // Update state - you might need to refetch
+                                } catch (err) {
+                                  setMessage(`❌ Error resetting: ${err.response?.data?.detail}`);
+                                }
+                              }
+                            }}
+                            className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 font-semibold"
+                          >
+                            ↶ Reset
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
               <div className="mb-6">
                 <h2 className="text-xl font-bold mb-4">Upcoming Matches (GW {gameweek})</h2>
                 <div className="space-y-2">
