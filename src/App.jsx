@@ -1,37 +1,86 @@
 /**
  * Tunisian Score Prediction App - React Frontend
- * Fixed version with QueryClientProvider
+ * Cleaned, bug-fixed, and visually enhanced version
  */
 
 import React, { useState, useEffect } from 'react';
-
-import { QueryClient, QueryClientProvider, useQuery, useMutation } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// Create QueryClient
-const queryClient = new QueryClient();
-
-// Configure axios
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 0,
+    },
   },
 });
 
-// Add token to requests
+const api = axios.create({
+  baseURL: API_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// ============ PAGES ============
+function errMsg(err, fallback = 'Something went wrong') {
+  return err?.response?.data?.detail || err?.message || fallback;
+}
 
+function initials(name) {
+  return (name || '?').slice(0, 2).toUpperCase();
+}
+
+function TeamBadge({ name, color }) {
+  return (
+    <div
+      className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow ${color}`}
+    >
+      {initials(name)}
+    </div>
+  );
+}
+
+const BADGE_COLORS = [
+  'bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500',
+  'bg-purple-500', 'bg-pink-500', 'bg-cyan-600', 'bg-orange-500',
+];
+function colorFor(name) {
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return BADGE_COLORS[Math.abs(hash) % BADGE_COLORS.length];
+}
+
+function Spinner({ label = 'Loading...' }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+      <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3" />
+      <p className="text-sm">{label}</p>
+    </div>
+  );
+}
+
+function ErrorBox({ message, onRetry }) {
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+      <p className="font-semibold mb-1">⚠️ Couldn't load this</p>
+      <p className="mb-2">{message}</p>
+      {onRetry && (
+        <button onClick={onRetry} className="text-red-800 underline font-semibold">
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ============ LOGIN ============
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,71 +93,58 @@ function LoginPage({ onLogin }) {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const endpoint = isRegister ? '/auth/register' : '/auth/login';
-      const data = isRegister
-        ? { username, email, password }
-        : { email, password };
-
+      const data = isRegister ? { username, email, password } : { email, password };
       const response = await api.post(endpoint, data);
-      
       localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
-      
       onLogin(response.data.user);
     } catch (err) {
-      setError(err.response?.data?.detail || 'An error occurred');
+      setError(errMsg(err, 'An error occurred'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          ⚽ Tunisian Score Prediction
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="text-5xl mb-2">⚽</div>
+          <h1 className="text-2xl font-extrabold text-gray-800">Tunisian Score Prediction</h1>
+          <p className="text-gray-500 text-sm mt-1">Predict scores, climb the leaderboard</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
             <input
-              type="text"
-              placeholder="Username"
-              value={username}
+              type="text" placeholder="Username" value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           )}
-
           <input
-            type="email"
-            placeholder="Email"
-            value={email}
+            type="email" placeholder="Email" value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
-
           <input
-            type="password"
-            placeholder="Password"
-            value={password}
+            type="password" placeholder="Password" value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded">{error}</p>}
 
           <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+            type="submit" disabled={loading}
+            className="w-full bg-gradient-to-r from-blue-600 to-emerald-600 text-white py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-50 transition"
           >
-            {loading ? 'Loading...' : isRegister ? 'Register' : 'Login'}
+            {loading ? 'Please wait...' : isRegister ? 'Create account' : 'Log in'}
           </button>
         </form>
 
@@ -116,916 +152,741 @@ function LoginPage({ onLogin }) {
           onClick={() => setIsRegister(!isRegister)}
           className="w-full mt-4 text-gray-600 text-sm hover:text-blue-600"
         >
-          {isRegister ? 'Already have an account? Login' : 'Need an account? Register'}
+          {isRegister ? 'Already have an account? Log in' : 'New here? Create an account'}
         </button>
       </div>
     </div>
   );
 }
 
-
+// ============ LEAGUES LIST ============
 function LeaguesPage({ user, onSelectLeague }) {
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [leagueName, setLeagueName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [formError, setFormError] = useState('');
 
-  // Fetch user's leagues (empty for now)
-const { data: leagues, isLoading, refetch } = useQuery({
+  const { data: leagues, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['leagues', user.id],
-    queryFn: async () => {
-      try {
-        const response = await api.get('/user/leagues');
-        return response.data;
-      } catch (err) {
-        console.error('Error fetching leagues:', err);
-        return [];
-      }
-    },
+    queryFn: async () => (await api.get('/user/leagues')).data,
   });
 
   const createLeague = async (e) => {
     e.preventDefault();
+    setFormError('');
     try {
-      const response = await api.post('/leagues', { name: leagueName });
+      await api.post('/leagues', { name: leagueName });
       setLeagueName('');
       setShowCreate(false);
       refetch();
     } catch (err) {
-      alert('Error creating league: ' + err.response?.data?.detail);
+      setFormError(errMsg(err, 'Could not create league'));
     }
   };
 
   const joinLeague = async (e) => {
     e.preventDefault();
+    setFormError('');
     try {
-      await api.post(`/leagues/${inviteCode}/join`);
+      await api.post(`/leagues/${inviteCode.trim().toUpperCase()}/join`);
       setInviteCode('');
       setShowJoin(false);
       refetch();
     } catch (err) {
-      alert('Invalid invite code: ' + err.response?.data?.detail);
+      setFormError(errMsg(err, 'Invalid invite code'));
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
+    <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">My Leagues</h1>
-          <div className="space-x-2">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-800">My Leagues</h1>
+            <p className="text-gray-500 text-sm">Welcome back, {user.username} 👋</p>
+          </div>
+          <div className="flex gap-2">
             <button
-              onClick={() => setShowCreate(!showCreate)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              onClick={() => { setShowCreate(!showCreate); setShowJoin(false); setFormError(''); }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 font-semibold shadow"
             >
               + Create League
             </button>
             <button
-              onClick={() => setShowJoin(!showJoin)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              onClick={() => { setShowJoin(!showJoin); setShowCreate(false); setFormError(''); }}
+              className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 font-semibold shadow"
             >
               + Join League
             </button>
           </div>
         </div>
 
+        {formError && <div className="mb-4"><ErrorBox message={formError} /></div>}
+
         {showCreate && (
-          <form onSubmit={createLeague} className="bg-white p-6 rounded-lg mb-6 shadow">
+          <form onSubmit={createLeague} className="bg-white p-6 rounded-2xl mb-6 shadow space-y-3">
             <input
-              type="text"
-              placeholder="League name"
-              value={leagueName}
+              type="text" placeholder="League name" value={leagueName}
               onChange={(e) => setLeagueName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl"
               required
             />
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
+            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 font-semibold">
               Create
             </button>
           </form>
         )}
 
         {showJoin && (
-          <form onSubmit={joinLeague} className="bg-white p-6 rounded-lg mb-6 shadow">
+          <form onSubmit={joinLeague} className="bg-white p-6 rounded-2xl mb-6 shadow space-y-3">
             <input
-              type="text"
-              placeholder="Invite code (e.g., ABC123)"
-              value={inviteCode}
+              type="text" placeholder="Invite code (e.g., ABC123)" value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl tracking-widest font-mono"
               required
             />
-            <button
-              type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
+            <button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 font-semibold">
               Join
             </button>
           </form>
         )}
 
         {isLoading ? (
-          <p className="text-center text-gray-600">Loading...</p>
+          <Spinner label="Loading your leagues..." />
+        ) : isError ? (
+          <ErrorBox message={errMsg(error, 'Could not load leagues')} onRetry={refetch} />
         ) : leagues && leagues.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {leagues.map((league) => (
               <div
                 key={league.id}
-                className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition"
+                onClick={() => onSelectLeague(league.id)}
+                className="bg-white p-6 rounded-2xl shadow cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition"
               >
-                <div
-                  onClick={() => onSelectLeague(league.id)}
-                  className="cursor-pointer mb-4"
-                >
-                  <h3 className="text-xl font-bold text-gray-800">{league.name}</h3>
-                  <p className="text-gray-600 text-sm">Code: {league.invite_code}</p>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">{league.name}</h3>
+                    <p className="text-gray-500 text-sm font-mono mt-1">Code: {league.invite_code}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-extrabold text-blue-600">{league.my_points ?? 0}</p>
+                    <p className="text-xs text-gray-500">your points</p>
+                  </div>
                 </div>
-                
-                {/* Delete Button */}
-                <button
-                  onClick={async () => {
-                    if (window.confirm(`Are you sure you want to delete "${league.name}"? This cannot be undone.`)) {
-                      try {
-                        await api.delete(`/leagues/${league.id}`);
-                        refetch();
-                      } catch (err) {
-                        alert('Error deleting league: ' + err.response?.data?.detail);
-                      }
-                    }
-                  }}
-                  className="w-full bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                >
-                  🗑️ Delete League
-                </button>
+                <p className="text-xs text-gray-400 mt-3">{league.member_count ?? '?'} member(s)</p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-center text-gray-600">No leagues yet. Create or join one!</p>
+          <div className="bg-white rounded-2xl shadow p-10 text-center text-gray-500">
+            No leagues yet — create one or join with a friend's invite code!
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-
-function LeagueDetailPage({ leagueId, onBack }) {
-  const [gameweek, setGameweek] = useState(1);
-
-// Fetch matches (ALL - both upcoming and finished)
-  const { data: matches, refetch: refetchMatches } = useQuery({
-    queryKey: ['admin-matches', gameweek],
-    queryFn: async () => {
-      const response = await api.get('/matches', { params: { gameweek } });
-      return response.data;  // ← GET ALL MATCHES (finished + upcoming)
-    },
-  });
-
-  // Fetch leaderboard
-  const { data: leaderboard } = useQuery({
-    queryKey: ['leaderboard', leagueId],
-    queryFn: async () => {
-      const response = await api.get(`/leagues/${leagueId}/standings`);
-      return response.data;
-    },
-  });
-
-  
-  // Fetch user's predictions for this league
-  const { data: userPredictions, refetch: refetchPredictions } = useQuery({
-    queryKey: ['user-predictions', leagueId, gameweek],  // ← ADD gameweek to key
-    queryFn: async () => {
-      try {
-        const response = await api.get('/user/predictions', {
-          params: { league_id: leagueId }
-        });
-        return response.data;
-      } catch (err) {
-        console.error('Error fetching predictions:', err);
-        return [];
-      }
-    },
-    staleTime: 0,  // ← Don't cache, always fetch fresh
-    gcTime: 0,     // ← Don't keep in memory
-  });
-  
-  // Refetch predictions when gameweek changes
-  useEffect(() => {
-    refetchPredictions();
-  }, [gameweek, refetchPredictions]);
-
-  // Get prediction for a specific match
-  const getPredictionForMatch = (matchId) => {
-    return userPredictions?.find(p => p.match_id === matchId);
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto">
-        <button
-          onClick={onBack}
-          className="mb-4 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-        >
-          ← Back to Leagues
-        </button>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Matches */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Gameweek {gameweek}</h2>
-                <div className="space-x-2">
-                  <button
-                    onClick={() => setGameweek(Math.max(1, gameweek - 1))}
-                    className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
-                    disabled={gameweek === 1}
-                  >
-                    ← Prev
-                  </button>
-                  <button
-                    onClick={() => setGameweek(gameweek + 1)}
-                    className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
-                  >
-                    Next →
-                  </button>
-                </div>
-              </div>
-
-              {matchesLoading ? (
-                <p className="text-gray-600">Loading matches...</p>
-              ) : matches && matches.length > 0 ? (
-                <div className="space-y-4">
-                  {matches.map((match) => (
-                    <MatchCard 
-                      key={match.id} 
-                      match={match} 
-                      leagueId={leagueId}
-                      existingPrediction={getPredictionForMatch(match.id)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-600">No matches for this gameweek</p>
-              )}
-            </div>
-            {/* Finished Matches */}
-          {matches && matches.some(m => m.status === 'finished') && (
-            <div className="bg-white rounded-lg shadow p-6 mt-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">📊 Finished Matches (GW {gameweek})</h3>
-              <div className="space-y-2">
-                {matches
-                  .filter(m => m.status === 'finished')
-                  .map(match => (
-                    <div key={match.id} className="flex justify-between items-center p-3 bg-green-50 border border-green-200 rounded">
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {match.home_team} vs {match.away_team}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {new Date(match.kickoff_time).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-green-600">
-                          {match.home_goals}-{match.away_goals}
-                        </p>
-                        <p className="text-xs text-gray-600">Final</p>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-          </div>
-              {/* Points Breakdown Panel */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">📊 Your Points Breakdown</h3>
-            
-            {userPredictions && userPredictions.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {userPredictions.map((pred) => (
-                  <div key={pred.id} className="border border-gray-200 rounded p-3 bg-gray-50">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {pred.home_team} vs {pred.away_team}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          You predicted: {pred.predicted_home_goals}-{pred.predicted_away_goals}
-                        </p>
-                        {pred.actual_home_goals !== null && (
-                          <p className="text-sm text-blue-600 font-semibold">
-                            Actual: {pred.actual_home_goals}-{pred.actual_away_goals}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        {pred.points_earned > 0 ? (
-                          <p className="text-2xl font-bold text-green-600">{pred.points_earned}</p>
-                        ) : (
-                          <p className="text-2xl font-bold text-gray-400">0</p>
-                        )}
-                        <p className="text-xs text-gray-600">points</p>
-                      </div>
-                    </div>
-
-                    {/* Points Breakdown */}
-                    {pred.points_earned > 0 && (
-                      <div className="bg-white rounded p-2 text-sm space-y-1 border-t border-gray-200 mt-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-700">Base points (correct result):</span>
-                          <span className="font-semibold">{pred.base_points}</span>
-                        </div>
-                        {pred.is_exact_match && (
-                          <div className="flex justify-between text-orange-600">
-                            <span>+ Exact score bonus:</span>
-                            <span className="font-semibold">+{pred.exact_bonus}</span>
-                          </div>
-                        )}
-                        {pred.x2_applied && (
-                          <div className="flex justify-between text-purple-600">
-                            <span>× X2 multiplier:</span>
-                            <span className="font-semibold">×2</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between border-t border-gray-200 pt-1 mt-1 font-bold">
-                          <span>Total:</span>
-                          <span className="text-green-600">{pred.points_earned}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Status badges */}
-                    <div className="mt-2 flex gap-2">
-                      {pred.is_exact_match && (
-                        <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                          🎯 Exact
-                        </span>
-                      )}
-                      {pred.x2_applied && (
-                        <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                          ⚡ X2
-                        </span>
-                      )}
-                      {pred.match_status === "finished" && (
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                          ✓ Finished
-                        </span>
-                      )}
-                      {pred.match_status === "upcoming" && (
-                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                          ⏳ Upcoming
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-600">No predictions yet. Submit one to see breakdown!</p>
-            )}
-          </div>
-          {/* Leaderboard */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">🏆 Leaderboard</h3>
-            <div className="space-y-2">
-              {leaderboard && leaderboard.length > 0 ? (
-                leaderboard.map((entry) => {
-                  // Medal emoji based on rank
-                  let medal = "";
-                  if (entry.rank === 1) medal = "🥇";
-                  else if (entry.rank === 2) medal = "🥈";
-                  else if (entry.rank === 3) medal = "🥉";
-                  else medal = "#" + entry.rank;
-
-                  // Color based on rank
-                  let bgColor = "bg-white";
-                  if (entry.rank === 1) bgColor = "bg-yellow-50";
-                  else if (entry.rank === 2) bgColor = "bg-gray-50";
-                  else if (entry.rank === 3) bgColor = "bg-orange-50";
-
-                  return (
-                    <div
-                      key={entry.user_id}
-                      className={`flex justify-between items-center p-3 rounded border border-gray-200 ${bgColor} hover:shadow transition`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl font-bold w-8">{medal}</span>
-                        <div>
-                          <p className="font-semibold text-gray-800">{entry.username}</p>
-                          <p className="text-xs text-gray-600">
-                            {entry.rank === 1 ? "🔥 Leading" : ""}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-blue-600">{entry.points}</p>
-                        <p className="text-xs text-gray-600">points</p>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-gray-600">No predictions yet</p>
-              )}
-            </div>
-
-            {/* Leaderboard Stats */}
-            {leaderboard && leaderboard.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <div className="grid grid-cols-2 gap-4 text-center text-sm">
-                  <div>
-                    <p className="text-2xl font-bold text-green-600">
-                      {leaderboard[0].points}
-                    </p>
-                    <p className="text-gray-600">Top score</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-gray-600">
-                      {leaderboard.length}
-                    </p>
-                    <p className="text-gray-600">Players</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-  );
+// ============ MATCH CARD ============
+function resultFromScore(home, away) {
+  if (home === '' || away === '' || home === undefined || away === undefined) return null;
+  const h = parseInt(home), a = parseInt(away);
+  if (isNaN(h) || isNaN(a)) return null;
+  if (h > a) return '1';
+  if (h < a) return '2';
+  return 'X';
 }
 
+function oddsForResult(match, result) {
+  if (result === '1') return match.odds_home;
+  if (result === 'X') return match.odds_draw;
+  if (result === '2') return match.odds_away;
+  return 0;
+}
 
-function MatchCard({ match, leagueId, existingPrediction }) {
-  const [prediction, setPrediction] = useState({
-    home: existingPrediction?.predicted_home_goals || '',
-    away: existingPrediction?.predicted_away_goals || '',
-    x2: existingPrediction?.x2_applied || false
-  });
-  const [submitted, setSubmitted] = useState(!!existingPrediction);
+function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
+  const [home, setHome] = useState(existingPrediction?.predicted_home_goals ?? '');
+  const [away, setAway] = useState(existingPrediction?.predicted_away_goals ?? '');
+  const [x2, setX2] = useState(existingPrediction?.x2_applied ?? false);
+  const [editing, setEditing] = useState(!existingPrediction);
   const [loading, setLoading] = useState(false);
-  
+  const [localError, setLocalError] = useState('');
+
   useEffect(() => {
-    if (existingPrediction) {
-        setPrediction({
-            home: existingPrediction.predicted_home_goals,
-            away: existingPrediction.predicted_away_goals,
-            x2: existingPrediction.x2_applied
-        });
-        setSubmitted(true);
-    } else {
-        setSubmitted(false);
-        setPrediction({
-            home: '',
-            away: '',
-            x2: false
-        });
-    }
-}, [existingPrediction]);
-  // Check if X2 is available in this gameweek
-  const { data: x2Status } = useQuery({
-    queryKey: ['x2-status', match.gameweek, leagueId],
-    queryFn: async () => {
-      try {
-        const response = await api.get(`/predictions/x2-status/${match.gameweek}`, {
-          params: { league_id: leagueId }
-        });
-        return response.data;
-      } catch (err) {
-        return { x2_used: false, used_for_match: null };
-      }
-    },
-  });
+    setHome(existingPrediction?.predicted_home_goals ?? '');
+    setAway(existingPrediction?.predicted_away_goals ?? '');
+    setX2(existingPrediction?.x2_applied ?? false);
+    setEditing(!existingPrediction);
+  }, [existingPrediction?.id, existingPrediction?.predicted_home_goals, existingPrediction?.predicted_away_goals, existingPrediction?.x2_applied]);
+
+  const isFinished = match.status === 'finished';
+  const isLocked = !isFinished && new Date(match.kickoff_time).getTime() - Date.now() <= 15 * 60 * 1000;
+  const minutesLeft = Math.floor((new Date(match.kickoff_time).getTime() - Date.now()) / 60000);
+
+  const predictedResult = resultFromScore(home, away);
+  const potentialBase = predictedResult ? oddsForResult(match, predictedResult) : 0;
+
+  const x2LockedByOther = x2Status?.x2_used && x2Status?.match_id !== match.id;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLocalError('');
     setLoading(true);
-    
     try {
       await api.post('/predictions', {
         match_id: match.id,
-        predicted_home_goals: parseInt(prediction.home),
-        predicted_away_goals: parseInt(prediction.away),
-        x2_apply: prediction.x2,
-      }, {
-        params: { league_id: leagueId },
-      });
-      
-      setSubmitted(true);
+        predicted_home_goals: parseInt(home),
+        predicted_away_goals: parseInt(away),
+        x2_apply: x2,
+      }, { params: { league_id: leagueId } });
+      setEditing(false);
+      onSaved && onSaved();
     } catch (err) {
-      alert('Error submitting prediction: ' + (err.response?.data?.detail || err.message));
+      setLocalError(errMsg(err, 'Could not save prediction'));
     } finally {
       setLoading(false);
     }
   };
 
-  const isLocked = new Date(match.kickoff_time) <= new Date();
-  const timeUntilLockdown = new Date(match.kickoff_time).getTime() - Date.now();
-  const minutesLeft = Math.floor(timeUntilLockdown / 60000);
-  
-  // X2 is disabled if already used in this gameweek AND not used on this match
-  const x2Disabled = x2Status?.x2_used && !existingPrediction?.x2_applied;
-  const x2Message = x2Status?.x2_used ? `X2 already used for ${x2Status.used_for_match}` : null;
-
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:shadow transition">
+    <div className={`rounded-2xl border p-4 transition ${isFinished ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200 hover:shadow'}`}>
       <div className="flex justify-between items-center mb-3">
-        <div className="font-semibold text-gray-800">
-          {match.home_team} vs {match.away_team}
+        <div className="flex items-center gap-2">
+          <TeamBadge name={match.home_team} color={colorFor(match.home_team)} />
+          <span className="font-semibold text-gray-800 text-sm">{match.home_team}</span>
+          <span className="text-gray-400 text-xs px-1">vs</span>
+          <span className="font-semibold text-gray-800 text-sm">{match.away_team}</span>
+          <TeamBadge name={match.away_team} color={colorFor(match.away_team)} />
         </div>
-        <div className="text-sm text-gray-600">
-          {new Date(match.kickoff_time).toLocaleString()}
-        </div>
+        <span className="text-xs text-gray-500 whitespace-nowrap">
+          {new Date(match.kickoff_time).toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        </span>
       </div>
 
-      {/* Match Status */}
-      {match.status === 'finished' ? (
-        <div className="text-lg font-bold text-green-600">
-          Final: {match.home_goals}-{match.away_goals}
+      {isFinished ? (
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="inline-block bg-emerald-600 text-white text-xl font-extrabold px-3 py-1 rounded-lg">
+              {match.home_goals} - {match.away_goals}
+            </span>
+            <span className="ml-2 text-xs text-emerald-700 font-semibold">FULL TIME</span>
+          </div>
+          {existingPrediction && (
+            <div className="text-right">
+              <p className="text-2xl font-extrabold text-emerald-700">
+                {existingPrediction.points_earned > 0 ? `+${existingPrediction.points_earned}` : '0'}
+              </p>
+              <p className="text-xs text-gray-500">points earned</p>
+            </div>
+          )}
         </div>
       ) : isLocked ? (
-        <div className="text-red-600 font-semibold">
-          ❌ Prediction Locked (Match starting in {minutesLeft < 0 ? 'now' : minutesLeft + ' min'})
+        <div className="bg-red-50 text-red-700 text-sm font-semibold rounded-lg px-3 py-2">
+          🔒 Predictions locked — kickoff {minutesLeft <= 0 ? 'now' : `in ${minutesLeft} min`}
+          {existingPrediction && (
+            <div className="mt-1 text-gray-700 font-normal">
+              Your prediction: {existingPrediction.predicted_home_goals}-{existingPrediction.predicted_away_goals}
+              {existingPrediction.x2_applied && <span className="ml-1 text-purple-700 font-semibold">×2</span>}
+            </div>
+          )}
         </div>
-      ) : submitted ? (
-        <div>
-          <div className="text-green-600 font-semibold mb-2">
-            ✓ Prediction: {prediction.home}-{prediction.away} {prediction.x2 ? '(x2)' : ''}
+      ) : !editing ? (
+        <div className="flex justify-between items-center bg-blue-50 rounded-lg px-3 py-2">
+          <div>
+            <p className="text-emerald-700 font-bold">
+              ✓ You predicted {home}-{away} {x2 && <span className="text-purple-700">(×2)</span>}
+            </p>
+            <p className="text-xs text-gray-600 mt-0.5">
+              Worth {potentialBase * (x2 ? 2 : 1)}+ pts if correct
+            </p>
           </div>
-          <button
-            onClick={() => setSubmitted(false)}
-            className="text-sm text-blue-600 hover:underline"
-          >
-            Edit prediction
+          <button onClick={() => setEditing(true)} className="text-blue-700 text-sm font-semibold hover:underline">
+            Edit
           </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-2">
-          <div className="flex gap-2 items-end flex-wrap">
-            <input
-              type="number"
-              min="0"
-              max="10"
-              placeholder="H"
-              value={prediction.home}
-              onChange={(e) => setPrediction({ ...prediction, home: e.target.value })}
-              className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
-              required
-            />
-            <span className="text-gray-600">-</span>
-            <input
-              type="number"
-              min="0"
-              max="10"
-              placeholder="A"
-              value={prediction.away}
-              onChange={(e) => setPrediction({ ...prediction, away: e.target.value })}
-              className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
-              required
-            />
-            
-            {/* X2 Checkbox with Disabled State */}
-            <label className={`flex items-center gap-1 text-sm ${x2Disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex items-center gap-2">
               <input
-                type="checkbox"
-                checked={prediction.x2}
-                onChange={(e) => !x2Disabled && setPrediction({ ...prediction, x2: e.target.checked })}
-                disabled={x2Disabled}
-                title={x2Message || "Use X2 bonus (once per gameweek)"}
+                type="number" min="0" max="10" placeholder="0" value={home}
+                onChange={(e) => setHome(e.target.value)}
+                className="w-14 px-2 py-2 border border-gray-300 rounded-lg text-center text-lg font-bold"
+                required
               />
-              x2
-            </label>
-            
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm font-semibold disabled:opacity-50"
+              <span className="text-gray-400 font-bold">-</span>
+              <input
+                type="number" min="0" max="10" placeholder="0" value={away}
+                onChange={(e) => setAway(e.target.value)}
+                className="w-14 px-2 py-2 border border-gray-300 rounded-lg text-center text-lg font-bold"
+                required
+              />
+            </div>
+
+            <label
+              className={`flex items-center gap-1 text-sm px-2 py-1 rounded-lg border ${
+                x2LockedByOther ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-purple-200 bg-purple-50 cursor-pointer'
+              }`}
+              title={x2LockedByOther ? `X2 already used for ${x2Status.used_for_match}` : 'Double your points for this match'}
             >
-              {loading ? 'Saving...' : 'Submit'}
+              <input
+                type="checkbox" checked={x2}
+                disabled={x2LockedByOther}
+                onChange={(e) => setX2(e.target.checked)}
+              />
+              <span className="font-bold text-purple-700">×2</span>
+            </label>
+
+            <button
+              type="submit" disabled={loading}
+              className="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : 'Save prediction'}
             </button>
           </div>
-          
-          {/* X2 Message */}
-          {x2Message && (
-            <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
-              ⚠️ {x2Message} in Gameweek {match.gameweek}
-            </div>
+
+          {predictedResult && (
+            <p className="text-xs text-gray-500">
+              🎯 Potential: <span className="font-semibold text-gray-700">{potentialBase * (x2 ? 2 : 1)} pts</span> for a correct result
+              {home !== '' && away !== '' && <span> (plus a bonus if the exact score is right)</span>}
+            </p>
           )}
+
+          {x2LockedByOther && (
+            <p className="text-xs text-orange-600 bg-orange-50 rounded px-2 py-1">
+              ⚠️ ×2 already used on {x2Status.used_for_match} this gameweek
+            </p>
+          )}
+
+          {localError && <p className="text-xs text-red-600">{localError}</p>}
         </form>
       )}
 
-      {/* Odds Display */}
-      <div className="mt-2 text-xs text-gray-500">
-        Odds: {match.odds_home} | Draw {match.odds_draw} | {match.odds_away}
+      <div className="mt-3 flex gap-3 text-[11px] text-gray-400">
+        <span>1: {match.odds_home}</span>
+        <span>X: {match.odds_draw}</span>
+        <span>2: {match.odds_away}</span>
       </div>
     </div>
   );
 }
 
+// ============ LEAGUE DETAIL ============
+function LeagueDetailPage({ leagueId, onBack }) {
+  const [gameweek, setGameweek] = useState(1);
+  const [tab, setTab] = useState('matches');
 
-// ============ MAIN APP WITH QUERY CLIENT PROVIDER ============
-function AdminPage({ user, onBack }) {
-  const [activeTab, setActiveTab] = useState('matches');
+  const {
+    data: matches, isLoading: matchesLoading, isError: matchesError, error: matchesErr, refetch: refetchMatches,
+  } = useQuery({
+    queryKey: ['matches', gameweek],
+    queryFn: async () => (await api.get('/matches', { params: { gameweek } })).data,
+  });
+
+  const {
+    data: leaderboard, isLoading: lbLoading, isError: lbError, error: lbErr, refetch: refetchLeaderboard,
+  } = useQuery({
+    queryKey: ['leaderboard', leagueId],
+    queryFn: async () => (await api.get(`/leagues/${leagueId}/standings`)).data,
+  });
+
+  const {
+    data: userPredictions, refetch: refetchPredictions,
+  } = useQuery({
+    queryKey: ['user-predictions', leagueId],
+    queryFn: async () => {
+      try {
+        return (await api.get('/user/predictions', { params: { league_id: leagueId } })).data;
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const { data: x2Status, refetch: refetchX2 } = useQuery({
+    queryKey: ['x2-status', leagueId, gameweek],
+    queryFn: async () => {
+      try {
+        return (await api.get(`/predictions/x2-status/${gameweek}`, { params: { league_id: leagueId } })).data;
+      } catch {
+        return { x2_used: false };
+      }
+    },
+  });
+
+  const refetchAll = () => {
+    refetchPredictions();
+    refetchLeaderboard();
+    refetchX2();
+  };
+
+  const getPredictionForMatch = (matchId) => userPredictions?.find((p) => p.match_id === matchId);
+
+  const myTotalPotential = (userPredictions || [])
+    .filter((p) => p.match_status !== 'finished')
+    .reduce((sum, p) => sum + (p.potential_base_points || 0) * (p.x2_multiplier || 1), 0);
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-6xl mx-auto">
+        <button onClick={onBack} className="mb-4 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-100 font-semibold shadow-sm">
+          ← Back to Leagues
+        </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-2xl shadow p-6">
+              <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+                <h2 className="text-2xl font-extrabold text-gray-800">Gameweek {gameweek}</h2>
+                <div className="flex gap-2">
+                  <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-semibold text-sm">
+                    ← Prev
+                  </button>
+                  <button onClick={() => setGameweek((g) => g + 1)} className="bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-semibold text-sm">
+                    Next →
+                  </button>
+                </div>
+              </div>
+
+              {myTotalPotential > 0 && (
+                <div className="bg-gradient-to-r from-blue-50 to-emerald-50 border border-blue-100 rounded-xl px-4 py-3 mb-4">
+                  <p className="text-sm text-gray-700">
+                    🎯 You could earn up to <span className="font-extrabold text-blue-700">{myTotalPotential} pts</span> from your live predictions this gameweek
+                  </p>
+                </div>
+              )}
+
+              {matchesLoading ? (
+                <Spinner label="Loading matches..." />
+              ) : matchesError ? (
+                <ErrorBox message={errMsg(matchesErr, 'Could not load matches')} onRetry={refetchMatches} />
+              ) : matches && matches.length > 0 ? (
+                <div className="space-y-3">
+                  {matches.map((match) => (
+                    <MatchCard
+                      key={match.id}
+                      match={match}
+                      leagueId={leagueId}
+                      existingPrediction={getPredictionForMatch(match.id)}
+                      x2Status={x2Status}
+                      onSaved={refetchAll}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No matches scheduled for this gameweek yet.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-6 h-fit">
+            <h3 className="text-xl font-extrabold text-gray-800 mb-4">🏆 Leaderboard</h3>
+
+            {lbLoading ? (
+              <Spinner label="Loading standings..." />
+            ) : lbError ? (
+              <ErrorBox message={errMsg(lbErr, 'Could not load leaderboard')} onRetry={refetchLeaderboard} />
+            ) : leaderboard && leaderboard.length > 0 ? (
+              <div className="space-y-2">
+                {leaderboard.map((entry) => {
+                  const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`;
+                  const bg = entry.rank === 1 ? 'bg-yellow-50 border-yellow-200' : entry.rank === 2 ? 'bg-gray-50 border-gray-200' : entry.rank === 3 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100';
+                  return (
+                    <div key={entry.user_id} className={`flex justify-between items-center p-3 rounded-xl border ${bg}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold w-7 text-center">{medal}</span>
+                        <span className="font-semibold text-gray-800 text-sm">{entry.username}</span>
+                      </div>
+                      <span className="text-lg font-extrabold text-blue-600">{entry.points}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No points yet — be the first to score!</p>
+            )}
+          </div>
+        </div>
+
+        {/* Points breakdown */}
+        <div className="bg-white rounded-2xl shadow p-6 mt-6">
+          <h3 className="text-xl font-extrabold text-gray-800 mb-4">📊 Your Predictions Breakdown</h3>
+          {userPredictions && userPredictions.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {userPredictions
+                .slice()
+                .sort((a, b) => new Date(b.kickoff_time) - new Date(a.kickoff_time))
+                .map((pred) => (
+                  <div key={pred.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-gray-800 text-sm">{pred.home_team} vs {pred.away_team}</p>
+                        <p className="text-xs text-gray-500">GW{pred.gameweek} · You: {pred.predicted_home_goals}-{pred.predicted_away_goals}</p>
+                        {pred.match_status === 'finished' && (
+                          <p className="text-xs text-blue-600 font-semibold">Actual: {pred.actual_home_goals}-{pred.actual_away_goals}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        {pred.match_status === 'finished' ? (
+                          <p className={`text-xl font-extrabold ${pred.points_earned > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>{pred.points_earned}</p>
+                        ) : (
+                          <p className="text-xl font-extrabold text-blue-500">
+                            {(pred.potential_base_points || 0) * (pred.x2_multiplier || 1)}<span className="text-xs text-gray-400">*</span>
+                          </p>
+                        )}
+                        <p className="text-[10px] text-gray-500">{pred.match_status === 'finished' ? 'earned' : 'potential'}</p>
+                      </div>
+                    </div>
+
+                    {pred.match_status === 'finished' && pred.points_earned > 0 && (
+                      <div className="bg-white rounded-lg p-2 text-xs space-y-0.5 border-t border-gray-200 mt-2">
+                        <div className="flex justify-between"><span className="text-gray-600">Base (correct result)</span><span className="font-semibold">{pred.base_points}</span></div>
+                        {pred.is_exact_match && (
+                          <div className="flex justify-between text-orange-600"><span>+ Exact score bonus</span><span className="font-semibold">+{pred.exact_bonus}</span></div>
+                        )}
+                        {pred.x2_applied && (
+                          <div className="flex justify-between text-purple-600"><span>× X2 multiplier</span><span className="font-semibold">×2</span></div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-2 flex gap-1 flex-wrap">
+                      {pred.is_exact_match && <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">🎯 Exact</span>}
+                      {pred.x2_applied && <span className="bg-purple-100 text-purple-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">⚡ X2</span>}
+                      {pred.match_status === 'finished' ? (
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">✓ Finished</span>
+                      ) : (
+                        <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">⏳ Upcoming</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">No predictions yet. Submit one above to see it here!</p>
+          )}
+          <p className="text-[11px] text-gray-400 mt-3">* Potential points assume a correct result; an exact-score bonus may add more.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ ADMIN ============
+function AdminPage({ onBack }) {
+  const [tab, setTab] = useState('matches');
   const [gameweek, setGameweek] = useState(1);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [homeGoals, setHomeGoals] = useState('');
   const [awayGoals, setAwayGoals] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(null); // {type: 'success'|'error', text}
 
-  // Fetch matches
-  const { data: matches } = useQuery({
+  const { data: matches, isLoading: matchesLoading, isError: matchesError, error: matchesErr, refetch: refetchMatches } = useQuery({
     queryKey: ['admin-matches', gameweek],
-    queryFn: async () => {
-      const response = await api.get('/matches', { params: { gameweek } });
-      return response.data.filter(m => m.status !== 'finished');
-    },
+    queryFn: async () => (await api.get('/matches', { params: { gameweek } })).data,
   });
 
-  // Fetch all leagues
-  const { data: allLeagues, refetch: refetchLeagues } = useQuery({
+  const { data: allLeagues, isLoading: leaguesLoading, isError: leaguesError, error: leaguesErr, refetch: refetchLeagues } = useQuery({
     queryKey: ['admin-leagues'],
-    queryFn: async () => {
-      try {
-        const response = await api.get('/admin/leagues');
-        return response.data;
-      } catch (err) {
-        console.error('Error fetching leagues:', err);
-        return [];
-      }
-    },
+    queryFn: async () => (await api.get('/admin/leagues')).data,
+    enabled: tab === 'leagues',
   });
+
+  const finished = (matches || []).filter((m) => m.status === 'finished');
+  const upcoming = (matches || []).filter((m) => m.status !== 'finished');
 
   const handleSetResult = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
-
+    setMessage(null);
     try {
-      const response = await api.put(
-        `/admin/matches/${selectedMatch.id}/result`,
-        null,
-        {
-          params: {
-            home_goals: parseInt(homeGoals),
-            away_goals: parseInt(awayGoals)
-          }
-        }
-      );
-
-      setMessage(`✅ Result set: ${selectedMatch.home_team} ${homeGoals}-${awayGoals} ${selectedMatch.away_team} | ${response.data.predictions_updated} predictions updated`);
+      const response = await api.put(`/admin/matches/${selectedMatch.id}/result`, null, {
+        params: { home_goals: parseInt(homeGoals), away_goals: parseInt(awayGoals) },
+      });
+      setMessage({ type: 'success', text: `Result set: ${selectedMatch.home_team} ${homeGoals}-${awayGoals} ${selectedMatch.away_team} · ${response.data.predictions_updated} predictions updated` });
       setSelectedMatch(null);
       setHomeGoals('');
       setAwayGoals('');
+      refetchMatches();
     } catch (err) {
-      setMessage(`❌ Error: ${err.response?.data?.detail || err.message}`);
+      setMessage({ type: 'error', text: errMsg(err, 'Could not set result') });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleReset = async (match) => {
+    if (!window.confirm(`Reset result for ${match.home_team} vs ${match.away_team}? All related points will be recalculated.`)) return;
+    try {
+      const response = await api.put(`/admin/matches/${match.id}/reset`);
+      setMessage({ type: 'success', text: `${response.data.message} · ${response.data.predictions_reset} predictions reset` });
+      refetchMatches();
+    } catch (err) {
+      setMessage({ type: 'error', text: errMsg(err, 'Could not reset result') });
+    }
+  };
+
   const handleDeleteLeague = async (leagueId, leagueName) => {
-    if (window.confirm(`Are you sure you want to delete league "${leagueName}"? This will delete all predictions and members. This cannot be undone.`)) {
-      try {
-        const response = await api.delete(`/leagues/${leagueId}`);
-        setMessage(`✅ League deleted: ${leagueName} (${response.data.deleted_members} members, ${response.data.deleted_predictions} predictions removed)`);
-        refetchLeagues();
-      } catch (err) {
-        setMessage(`❌ Error deleting league: ${err.response?.data?.detail}`);
-      }
+    if (!window.confirm(`Delete league "${leagueName}"? This removes all its predictions and members. This cannot be undone.`)) return;
+    try {
+      const response = await api.delete(`/leagues/${leagueId}`);
+      setMessage({ type: 'success', text: `${response.data.message} · ${response.data.deleted_members} members, ${response.data.deleted_predictions} predictions removed` });
+      refetchLeagues();
+    } catch (err) {
+      setMessage({ type: 'error', text: errMsg(err, 'Could not delete league') });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto">
-        <button
-          onClick={onBack}
-          className="mb-4 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-        >
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-5xl mx-auto">
+        <button onClick={onBack} className="mb-4 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-100 font-semibold shadow-sm">
           ← Back
         </button>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-6">⚙️ Admin Dashboard</h1>
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h1 className="text-2xl font-extrabold text-gray-800 mb-6">⚙️ Admin Dashboard</h1>
 
-          {/* Tabs */}
-          <div className="flex gap-4 mb-6 border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('matches')}
-              className={`px-4 py-2 font-semibold border-b-2 transition ${
-                activeTab === 'matches'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-600 border-transparent hover:text-gray-800'
-              }`}
-            >
-              📋 Set Match Results
-            </button>
-            <button
-              onClick={() => setActiveTab('leagues')}
-              className={`px-4 py-2 font-semibold border-b-2 transition ${
-                activeTab === 'leagues'
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-600 border-transparent hover:text-gray-800'
-              }`}
-            >
-              🗑️ Manage Leagues
-            </button>
+          <div className="flex gap-2 mb-6 border-b border-gray-200">
+            {[['matches', '📋 Match Results'], ['leagues', '🗑️ Manage Leagues']].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => { setTab(key); setMessage(null); }}
+                className={`px-4 py-2 font-semibold text-sm border-b-2 -mb-px transition ${
+                  tab === key ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
-          {/* Messages */}
           {message && (
-            <div className={`mb-6 p-4 rounded ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {message}
+            <div className={`mb-6 p-3 rounded-xl text-sm ${message.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+              {message.type === 'success' ? '✅ ' : '❌ '}{message.text}
             </div>
           )}
 
-          {/* TAB 1: SET MATCH RESULTS */}
-          {activeTab === 'matches' && (
+          {tab === 'matches' && (
             <div>
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2">Select Gameweek:</label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setGameweek(Math.max(1, gameweek - 1))}
-                    className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
-                  >
-                    ← Prev
-                  </button>
-                  <span className="px-4 py-1 bg-blue-100 rounded font-bold">GW {gameweek}</span>
-                  <button
-                    onClick={() => setGameweek(gameweek + 1)}
-                    className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
-                  >
-                    Next →
-                  </button>
-                </div>
+              <div className="flex gap-2 items-center mb-6">
+                <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-gray-100 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-gray-200">← Prev</button>
+                <span className="px-4 py-1.5 bg-blue-100 rounded-lg font-bold text-blue-800 text-sm">GW {gameweek}</span>
+                <button onClick={() => setGameweek((g) => g + 1)} className="bg-gray-100 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-gray-200">Next →</button>
               </div>
-{/* FINISHED MATCHES */}
-              {matches && matches.some(m => m.status === 'finished') && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold mb-4 text-green-600">✓ Finished Matches (GW {gameweek})</h2>
-                  <div className="space-y-2">
-                    {matches
-                      .filter(m => m.status === 'finished')
-                      .map(match => (
-                        <div
-                          key={match.id}
-                          className="p-4 border-2 border-green-300 rounded bg-green-50 flex justify-between items-center"
-                        >
-                          <div>
-                            <div className="font-semibold">{match.home_team} vs {match.away_team}</div>
-                            <div className="text-2xl font-bold text-green-600">
-                              {match.home_goals}-{match.away_goals}
+
+              {matchesLoading ? (
+                <Spinner label="Loading matches..." />
+              ) : matchesError ? (
+                <ErrorBox message={errMsg(matchesErr, 'Could not load matches')} onRetry={refetchMatches} />
+              ) : (
+                <>
+                  {finished.length > 0 && (
+                    <div className="mb-6">
+                      <h2 className="text-lg font-bold mb-3 text-emerald-700">✓ Finished ({finished.length})</h2>
+                      <div className="space-y-2">
+                        {finished.map((match) => (
+                          <div key={match.id} className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex justify-between items-center">
+                            <div>
+                              <p className="font-semibold text-gray-800 text-sm">{match.home_team} vs {match.away_team}</p>
+                              <p className="text-2xl font-extrabold text-emerald-700">{match.home_goals}-{match.away_goals}</p>
+                            </div>
+                            <button onClick={() => handleReset(match)} className="bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-orange-700">
+                              ↶ Reset
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <h2 className="text-lg font-bold mb-3 text-gray-800">Upcoming ({upcoming.length})</h2>
+                  <div className="space-y-2 mb-6">
+                    {upcoming.length === 0 && <p className="text-gray-500 text-sm">No upcoming matches this gameweek.</p>}
+                    {upcoming.map((match) => (
+                      <div
+                        key={match.id}
+                        onClick={() => setSelectedMatch(match)}
+                        className={`p-4 border rounded-xl cursor-pointer transition ${
+                          selectedMatch?.id === match.id ? 'bg-blue-50 border-blue-400' : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex justify-between">
+                          <span className="font-semibold text-sm">{match.home_team} vs {match.away_team}</span>
+                          <span className="text-xs text-gray-500">{new Date(match.kickoff_time).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedMatch && (
+                    <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
+                      <h3 className="font-bold mb-4">Set result: {selectedMatch.home_team} vs {selectedMatch.away_team}</h3>
+                      <form onSubmit={handleSetResult} className="flex flex-wrap gap-4 items-end">
+                        <div>
+                          <label className="block text-xs font-semibold mb-1 text-gray-600">{selectedMatch.home_team}</label>
+                          <input type="number" min="0" max="10" value={homeGoals} onChange={(e) => setHomeGoals(e.target.value)}
+                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center text-xl font-bold" required />
+                        </div>
+                        <span className="text-xl font-bold pb-2">-</span>
+                        <div>
+                          <label className="block text-xs font-semibold mb-1 text-gray-600">{selectedMatch.away_team}</label>
+                          <input type="number" min="0" max="10" value={awayGoals} onChange={(e) => setAwayGoals(e.target.value)}
+                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center text-xl font-bold" required />
+                        </div>
+                        <button type="submit" disabled={loading} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50">
+                          {loading ? 'Setting...' : 'Set Result'}
+                        </button>
+                        <button type="button" onClick={() => setSelectedMatch(null)} className="text-gray-500 text-sm hover:underline">
+                          Cancel
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {tab === 'leagues' && (
+            <div>
+              {leaguesLoading ? (
+                <Spinner label="Loading leagues..." />
+              ) : leaguesError ? (
+                <ErrorBox message={errMsg(leaguesErr, 'Could not load leagues')} onRetry={refetchLeagues} />
+              ) : (
+                <>
+                  <h2 className="text-lg font-bold mb-4">All Leagues ({allLeagues?.length || 0})</h2>
+                  {allLeagues && allLeagues.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {allLeagues.map((league) => (
+                        <div key={league.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="font-semibold text-gray-800">{league.name}</h3>
+                              <p className="text-xs text-gray-500 font-mono">{league.invite_code}</p>
+                              <p className="text-xs text-gray-500">by {league.creator}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xl font-extrabold text-blue-600">{league.members}</p>
+                              <p className="text-[10px] text-gray-500">members</p>
                             </div>
                           </div>
-                          <button
-                            onClick={async () => {
-                              if (window.confirm(`Reset result for ${match.home_team} vs ${match.away_team}? All points will be recalculated.`)) {
-                                try {
-                                  const response = await api.put(`/admin/matches/${match.id}/reset`);
-                                  setMessage(`✅ ${response.data.message} (${response.data.predictions_reset} predictions reset)`);
-                                  // Refetch matches
-                                  const newMatches = await api.get('/matches', { params: { gameweek } });
-                                  // Update state - you might need to refetch
-                                } catch (err) {
-                                  setMessage(`❌ Error resetting: ${err.response?.data?.detail}`);
-                                }
-                              }
-                            }}
-                            className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 font-semibold"
-                          >
-                            ↶ Reset
+                          <div className="flex gap-1 flex-wrap text-xs mb-3">
+                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">{league.predictions} predictions</span>
+                          </div>
+                          <button onClick={() => handleDeleteLeague(league.id, league.name)} className="w-full bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 font-semibold text-sm">
+                            🗑️ Delete League
                           </button>
                         </div>
                       ))}
-                  </div>
-                </div>
-              )}
-              <div className="mb-6">
-                <h2 className="text-xl font-bold mb-4">Upcoming Matches (GW {gameweek})</h2>
-                <div className="space-y-2">
-                  {matches?.map(match => (
-                    <div
-                      key={match.id}
-                      onClick={() => setSelectedMatch(match)}
-                      className={`p-4 border rounded cursor-pointer transition ${
-                        selectedMatch?.id === match.id
-                          ? 'bg-blue-100 border-blue-500'
-                          : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
-                      }`}
-                    >
-                      <div className="flex justify-between">
-                        <span className="font-semibold">{match.home_team} vs {match.away_team}</span>
-                        <span className="text-sm text-gray-600">{new Date(match.kickoff_time).toLocaleString()}</span>
-                      </div>
                     </div>
-                  ))}
-                  {matches?.length === 0 && (
-                    <p className="text-gray-600">No upcoming matches in this gameweek</p>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No leagues found.</p>
                   )}
-                </div>
-              </div>
-
-              {selectedMatch && (
-                <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                  <h3 className="text-lg font-bold mb-4">Set Result: {selectedMatch.home_team} vs {selectedMatch.away_team}</h3>
-                  
-                  <form onSubmit={handleSetResult} className="space-y-4">
-                    <div className="flex gap-4 items-end">
-                      <div>
-                        <label className="block text-sm font-semibold mb-1">{selectedMatch.home_team} Goals:</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="10"
-                          value={homeGoals}
-                          onChange={(e) => setHomeGoals(e.target.value)}
-                          className="w-24 px-3 py-2 border border-gray-300 rounded text-center text-2xl font-bold"
-                          required
-                        />
-                      </div>
-
-                      <span className="text-2xl font-bold">-</span>
-
-                      <div>
-                        <label className="block text-sm font-semibold mb-1">{selectedMatch.away_team} Goals:</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="10"
-                          value={awayGoals}
-                          onChange={(e) => setAwayGoals(e.target.value)}
-                          className="w-24 px-3 py-2 border border-gray-300 rounded text-center text-2xl font-bold"
-                          required
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="bg-green-600 text-white px-6 py-2 rounded font-semibold hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {loading ? 'Setting...' : 'Set Result'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 2: MANAGE LEAGUES */}
-          {activeTab === 'leagues' && (
-            <div>
-              <h2 className="text-xl font-bold mb-4">All Leagues ({allLeagues?.length || 0})</h2>
-              
-              {allLeagues && allLeagues.length > 0 ? (
-                <div className="space-y-3">
-                  {allLeagues.map(league => (
-                    <div key={league.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-800">{league.name}</h3>
-                          <p className="text-sm text-gray-600">Code: {league.invite_code}</p>
-                          <p className="text-sm text-gray-600">Creator: {league.creator}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-blue-600">{league.members}</p>
-                          <p className="text-xs text-gray-600">members</p>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 flex-wrap text-sm mb-3">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {league.predictions} predictions
-                        </span>
-                        <span className={`px-2 py-1 rounded ${
-                          league.status === 'active' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-200 text-gray-800'
-                        }`}>
-                          {league.status}
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={() => handleDeleteLeague(league.id, league.name)}
-                        className="w-full bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 font-semibold"
-                      >
-                        🗑️ Delete League
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-600">No leagues found</p>
+                </>
               )}
             </div>
           )}
@@ -1035,74 +896,61 @@ function AdminPage({ user, onBack }) {
   );
 }
 
-
-export default function App() {
+// ============ APP ROOT ============
+function AppShell() {
   const [user, setUser] = useState(null);
   const [selectedLeague, setSelectedLeague] = useState(null);
 
-  // Load user on mount
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try { setUser(JSON.parse(storedUser)); } catch { /* ignore */ }
     }
   }, []);
-
-  // Refetch predictions when user changes
-  useEffect(() => {
-    if (user) {
-      queryClient.refetchQueries();
-    }
-  }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setSelectedLeague(null);
   };
 
-  if (!user) {
-    return <LoginPage onLogin={setUser} />;
-  }
+  if (!user) return <LoginPage onLogin={setUser} />;
 
-return (
-  <QueryClientProvider client={queryClient}>
-    <div>
-      <nav className="bg-blue-600 text-white p-4">
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-gradient-to-r from-slate-900 to-blue-900 text-white p-4 shadow-lg">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold">⚽ Tunisian Score Prediction</h1>
-          <div className="flex items-center gap-4">
-            <span>{user.username}</span>
-            {/* Admin button - only show if username is "admin" */}
-            {user.username === "admin" && (
-              <button
-                onClick={() => setSelectedLeague('admin')}
-                className="bg-purple-600 px-4 py-2 rounded hover:bg-purple-700 text-sm"
-              >
+          <h1 className="text-lg font-extrabold flex items-center gap-2">⚽ Tunisian Score Prediction</h1>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold hidden sm:block">{user.username}</span>
+            {user.username === 'admin' && (
+              <button onClick={() => setSelectedLeague('admin')} className="bg-purple-600 px-3 py-1.5 rounded-lg hover:bg-purple-700 text-sm font-semibold">
                 ⚙️ Admin
               </button>
             )}
-            <button
-              onClick={handleLogout}
-              className="bg-red-600 px-4 py-2 rounded hover:bg-red-700"
-            >
+            <button onClick={handleLogout} className="bg-red-600/90 px-3 py-1.5 rounded-lg hover:bg-red-700 text-sm font-semibold">
               Logout
             </button>
           </div>
         </div>
       </nav>
 
-{selectedLeague === 'admin' ? (
-  <AdminPage user={user} onBack={() => setSelectedLeague(null)} />
-) : selectedLeague ? (
-  <LeagueDetailPage
-    leagueId={selectedLeague}
-    onBack={() => setSelectedLeague(null)}
-  />
-) : (
-  <LeaguesPage user={user} onSelectLeague={setSelectedLeague} />
-)}
-      </div>
+      {selectedLeague === 'admin' ? (
+        <AdminPage onBack={() => setSelectedLeague(null)} />
+      ) : selectedLeague ? (
+        <LeagueDetailPage leagueId={selectedLeague} onBack={() => setSelectedLeague(null)} />
+      ) : (
+        <LeaguesPage user={user} onSelectLeague={setSelectedLeague} />
+      )}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppShell />
     </QueryClientProvider>
   );
 }
