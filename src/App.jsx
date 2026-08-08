@@ -275,12 +275,12 @@ const { data: leagues, isLoading, refetch } = useQuery({
 function LeagueDetailPage({ leagueId, onBack }) {
   const [gameweek, setGameweek] = useState(1);
 
-  // Fetch matches for this gameweek
-  const { data: matches, isLoading: matchesLoading } = useQuery({
-    queryKey: ['matches', gameweek],
+// Fetch matches (ALL - both upcoming and finished)
+  const { data: matches, refetch: refetchMatches } = useQuery({
+    queryKey: ['admin-matches', gameweek],
     queryFn: async () => {
       const response = await api.get('/matches', { params: { gameweek } });
-      return response.data;
+      return response.data;  // ← GET ALL MATCHES (finished + upcoming)
     },
   });
 
