@@ -234,11 +234,32 @@ const { data: leagues, isLoading, refetch } = useQuery({
             {leagues.map((league) => (
               <div
                 key={league.id}
-                onClick={() => onSelectLeague(league.id)}
-                className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition"
+                className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition"
               >
-                <h3 className="text-xl font-bold text-gray-800">{league.name}</h3>
-                <p className="text-gray-600 text-sm">Code: {league.invite_code}</p>
+                <div
+                  onClick={() => onSelectLeague(league.id)}
+                  className="cursor-pointer mb-4"
+                >
+                  <h3 className="text-xl font-bold text-gray-800">{league.name}</h3>
+                  <p className="text-gray-600 text-sm">Code: {league.invite_code}</p>
+                </div>
+                
+                {/* Delete Button */}
+                <button
+                  onClick={async () => {
+                    if (window.confirm(`Are you sure you want to delete "${league.name}"? This cannot be undone.`)) {
+                      try {
+                        await api.delete(`/leagues/${league.id}`);
+                        refetch();
+                      } catch (err) {
+                        alert('Error deleting league: ' + err.response?.data?.detail);
+                      }
+                    }
+                  }}
+                  className="w-full bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                >
+                  🗑️ Delete League
+                </button>
               </div>
             ))}
           </div>
@@ -710,6 +731,7 @@ function MatchCard({ match, leagueId, existingPrediction }) {
 
 // ============ MAIN APP WITH QUERY CLIENT PROVIDER ============
 function AdminPage({ user, onBack }) {
+  const [activeTab, setActiveTab] = useState('matches');
   const [gameweek, setGameweek] = useState(1);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [homeGoals, setHomeGoals] = useState('');
@@ -723,6 +745,20 @@ function AdminPage({ user, onBack }) {
     queryFn: async () => {
       const response = await api.get('/matches', { params: { gameweek } });
       return response.data.filter(m => m.status !== 'finished');
+    },
+  });
+
+  // Fetch all leagues
+  const { data: allLeagues, refetch: refetchLeagues } = useQuery({
+    queryKey: ['admin-leagues'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/admin/leagues');
+        return response.data;
+      } catch (err) {
+        console.error('Error fetching leagues:', err);
+        return [];
+      }
     },
   });
 
@@ -743,7 +779,7 @@ function AdminPage({ user, onBack }) {
         }
       );
 
-      setMessage(`✅ Result set: ${selectedMatch.home_team} ${homeGoals}-${awayGoals} ${selectedMatch.away_team}`);
+      setMessage(`✅ Result set: ${selectedMatch.home_team} ${homeGoals}-${awayGoals} ${selectedMatch.away_team} | ${response.data.predictions_updated} predictions updated`);
       setSelectedMatch(null);
       setHomeGoals('');
       setAwayGoals('');
@@ -754,9 +790,21 @@ function AdminPage({ user, onBack }) {
     }
   };
 
+  const handleDeleteLeague = async (leagueId, leagueName) => {
+    if (window.confirm(`Are you sure you want to delete league "${leagueName}"? This will delete all predictions and members. This cannot be undone.`)) {
+      try {
+        const response = await api.delete(`/leagues/${leagueId}`);
+        setMessage(`✅ League deleted: ${leagueName} (${response.data.deleted_members} members, ${response.data.deleted_predictions} predictions removed)`);
+        refetchLeagues();
+      } catch (err) {
+        setMessage(`❌ Error deleting league: ${err.response?.data?.detail}`);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <button
           onClick={onBack}
           className="mb-4 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
@@ -767,95 +815,177 @@ function AdminPage({ user, onBack }) {
         <div className="bg-white rounded-lg shadow p-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-6">⚙️ Admin Dashboard</h1>
 
-          <div className="mb-6">
-            <label className="block text-sm font-semibold mb-2">Select Gameweek:</label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setGameweek(Math.max(1, gameweek - 1))}
-                className="bg-gray-300 px-3 py-1 rounded"
-              >
-                ← Prev
-              </button>
-              <span className="px-4 py-1 bg-blue-100 rounded font-bold">GW {gameweek}</span>
-              <button
-                onClick={() => setGameweek(gameweek + 1)}
-                className="bg-gray-300 px-3 py-1 rounded"
-              >
-                Next →
-              </button>
-            </div>
+          {/* Tabs */}
+          <div className="flex gap-4 mb-6 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('matches')}
+              className={`px-4 py-2 font-semibold border-b-2 transition ${
+                activeTab === 'matches'
+                  ? 'text-blue-600 border-blue-600'
+                  : 'text-gray-600 border-transparent hover:text-gray-800'
+              }`}
+            >
+              📋 Set Match Results
+            </button>
+            <button
+              onClick={() => setActiveTab('leagues')}
+              className={`px-4 py-2 font-semibold border-b-2 transition ${
+                activeTab === 'leagues'
+                  ? 'text-blue-600 border-blue-600'
+                  : 'text-gray-600 border-transparent hover:text-gray-800'
+              }`}
+            >
+              🗑️ Manage Leagues
+            </button>
           </div>
 
-          <div className="mb-6">
-            <h2 className="text-xl font-bold mb-4">Upcoming Matches (GW {gameweek})</h2>
-            <div className="space-y-2">
-              {matches?.map(match => (
-                <div
-                  key={match.id}
-                  onClick={() => setSelectedMatch(match)}
-                  className={`p-4 border rounded cursor-pointer transition ${
-                    selectedMatch?.id === match.id
-                      ? 'bg-blue-100 border-blue-500'
-                      : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="flex justify-between">
-                    <span className="font-semibold">{match.home_team} vs {match.away_team}</span>
-                    <span className="text-sm text-gray-600">{new Date(match.kickoff_time).toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
+          {/* Messages */}
+          {message && (
+            <div className={`mb-6 p-4 rounded ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              {message}
             </div>
-          </div>
+          )}
 
-          {selectedMatch && (
-            <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-              <h3 className="text-lg font-bold mb-4">Set Result: {selectedMatch.home_team} vs {selectedMatch.away_team}</h3>
-              
-              <form onSubmit={handleSetResult} className="space-y-4">
-                <div className="flex gap-4 items-end">
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">{selectedMatch.home_team} Goals:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      value={homeGoals}
-                      onChange={(e) => setHomeGoals(e.target.value)}
-                      className="w-24 px-3 py-2 border border-gray-300 rounded text-center text-2xl font-bold"
-                      required
-                    />
-                  </div>
-
-                  <span className="text-2xl font-bold">-</span>
-
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">{selectedMatch.away_team} Goals:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      value={awayGoals}
-                      onChange={(e) => setAwayGoals(e.target.value)}
-                      className="w-24 px-3 py-2 border border-gray-300 rounded text-center text-2xl font-bold"
-                      required
-                    />
-                  </div>
-
+          {/* TAB 1: SET MATCH RESULTS */}
+          {activeTab === 'matches' && (
+            <div>
+              <div className="mb-6">
+                <label className="block text-sm font-semibold mb-2">Select Gameweek:</label>
+                <div className="flex gap-2">
                   <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-green-600 text-white px-6 py-2 rounded font-semibold hover:bg-green-700 disabled:opacity-50"
+                    onClick={() => setGameweek(Math.max(1, gameweek - 1))}
+                    className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
                   >
-                    {loading ? 'Setting...' : 'Set Result'}
+                    ← Prev
+                  </button>
+                  <span className="px-4 py-1 bg-blue-100 rounded font-bold">GW {gameweek}</span>
+                  <button
+                    onClick={() => setGameweek(gameweek + 1)}
+                    className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
+                  >
+                    Next →
                   </button>
                 </div>
-              </form>
+              </div>
 
-              {message && (
-                <div className={`mt-4 p-3 rounded ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {message}
+              <div className="mb-6">
+                <h2 className="text-xl font-bold mb-4">Upcoming Matches (GW {gameweek})</h2>
+                <div className="space-y-2">
+                  {matches?.map(match => (
+                    <div
+                      key={match.id}
+                      onClick={() => setSelectedMatch(match)}
+                      className={`p-4 border rounded cursor-pointer transition ${
+                        selectedMatch?.id === match.id
+                          ? 'bg-blue-100 border-blue-500'
+                          : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex justify-between">
+                        <span className="font-semibold">{match.home_team} vs {match.away_team}</span>
+                        <span className="text-sm text-gray-600">{new Date(match.kickoff_time).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {matches?.length === 0 && (
+                    <p className="text-gray-600">No upcoming matches in this gameweek</p>
+                  )}
                 </div>
+              </div>
+
+              {selectedMatch && (
+                <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                  <h3 className="text-lg font-bold mb-4">Set Result: {selectedMatch.home_team} vs {selectedMatch.away_team}</h3>
+                  
+                  <form onSubmit={handleSetResult} className="space-y-4">
+                    <div className="flex gap-4 items-end">
+                      <div>
+                        <label className="block text-sm font-semibold mb-1">{selectedMatch.home_team} Goals:</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="10"
+                          value={homeGoals}
+                          onChange={(e) => setHomeGoals(e.target.value)}
+                          className="w-24 px-3 py-2 border border-gray-300 rounded text-center text-2xl font-bold"
+                          required
+                        />
+                      </div>
+
+                      <span className="text-2xl font-bold">-</span>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-1">{selectedMatch.away_team} Goals:</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="10"
+                          value={awayGoals}
+                          onChange={(e) => setAwayGoals(e.target.value)}
+                          className="w-24 px-3 py-2 border border-gray-300 rounded text-center text-2xl font-bold"
+                          required
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="bg-green-600 text-white px-6 py-2 rounded font-semibold hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {loading ? 'Setting...' : 'Set Result'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: MANAGE LEAGUES */}
+          {activeTab === 'leagues' && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">All Leagues ({allLeagues?.length || 0})</h2>
+              
+              {allLeagues && allLeagues.length > 0 ? (
+                <div className="space-y-3">
+                  {allLeagues.map(league => (
+                    <div key={league.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800">{league.name}</h3>
+                          <p className="text-sm text-gray-600">Code: {league.invite_code}</p>
+                          <p className="text-sm text-gray-600">Creator: {league.creator}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-blue-600">{league.members}</p>
+                          <p className="text-xs text-gray-600">members</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 flex-wrap text-sm mb-3">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          {league.predictions} predictions
+                        </span>
+                        <span className={`px-2 py-1 rounded ${
+                          league.status === 'active' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-200 text-gray-800'
+                        }`}>
+                          {league.status}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteLeague(league.id, league.name)}
+                        className="w-full bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 font-semibold"
+                      >
+                        🗑️ Delete League
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600">No leagues found</p>
               )}
             </div>
           )}
