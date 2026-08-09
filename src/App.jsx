@@ -1,21 +1,17 @@
 /**
- * Tunisian Score Prediction App - React Frontend
- * Cleaned, bug-fixed, and visually enhanced version
+ * Tunisian Score Prediction App — React Frontend
+ * Visual system: "Matchday Coupon" (see design-system.css)
  */
 
 import React, { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import './design-system.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 0,
-    },
-  },
+  defaultOptions: { queries: { retry: 1, staleTime: 0 } },
 });
 
 const api = axios.create({
@@ -33,46 +29,84 @@ function errMsg(err, fallback = 'Something went wrong') {
   return err?.response?.data?.detail || err?.message || fallback;
 }
 
-function initials(name) {
-  return (name || '?').slice(0, 2).toUpperCase();
-}
-
-function TeamBadge({ name, color }) {
+// ============ SHARED PIECES ============
+function Crest({ size = 40 }) {
   return (
     <div
-      className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow ${color}`}
+      className="crest bg-floodlight flex items-center justify-center font-display font-bold text-ink shrink-0"
+      style={{ width: size, height: size, fontSize: size * 0.38 }}
     >
-      {initials(name)}
+      TN
     </div>
   );
 }
 
-const BADGE_COLORS = [
-  'bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500',
-  'bg-purple-500', 'bg-pink-500', 'bg-cyan-600', 'bg-orange-500',
-];
+function TeamBadge({ name, color }) {
+  const initials = (name || '?').slice(0, 2).toUpperCase();
+  return (
+    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 shadow ${color}`}>
+      {initials}
+    </div>
+  );
+}
+
+const BADGE_COLORS = ['bg-flag', 'bg-pitch', 'bg-amber-600', 'bg-slate-600', 'bg-rose-600', 'bg-teal-600', 'bg-indigo-600', 'bg-orange-600'];
 function colorFor(name) {
   let hash = 0;
   for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return BADGE_COLORS[Math.abs(hash) % BADGE_COLORS.length];
 }
 
-function Spinner({ label = 'Loading...' }) {
+/** The signature element: a scoreboard-style digit chip, static or editable. */
+function ScoreDigit({ value, onChange, editable = false, size = 'md' }) {
+  const sizes = {
+    sm: 'w-9 h-9 text-base',
+    md: 'w-12 h-12 text-xl',
+    lg: 'w-14 h-14 text-2xl',
+  };
+  if (editable) {
+    return (
+      <input
+        type="number" min="0" max="10" value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="0"
+        className={`scoreboard-digit rounded-md text-center font-bold ${sizes[size]}`}
+        required
+      />
+    );
+  }
   return (
-    <div className="flex flex-col items-center justify-center py-10 text-gray-500">
-      <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3" />
-      <p className="text-sm">{label}</p>
+    <div className={`scoreboard-digit rounded-md flex items-center justify-center font-bold ${sizes[size]}`}>
+      {value}
+    </div>
+  );
+}
+
+function Eyebrow({ children, tone = 'pitch' }) {
+  const tones = { pitch: 'text-pitch', floodlight: 'text-floodlight', flag: 'text-flag', mist: 'text-mist' };
+  return (
+    <p className={`font-display uppercase tracking-[0.2em] text-xs font-semibold ${tones[tone]} mb-1`}>
+      {children}
+    </p>
+  );
+}
+
+function Spinner({ label = 'Loading…' }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-mist">
+      <div className="w-8 h-8 border-4 border-pitch/20 border-t-pitch rounded-full animate-spin mb-3" />
+      <p className="text-sm font-body">{label}</p>
     </div>
   );
 }
 
 function ErrorBox({ message, onRetry }) {
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
-      <p className="font-semibold mb-1">⚠️ Couldn't load this</p>
-      <p className="mb-2">{message}</p>
+    <div className="bg-flag/5 border-2 border-dashed border-flag/40 rounded-ticket p-4 text-flag text-sm">
+      <p className="font-display uppercase tracking-wide text-xs font-bold mb-1">Couldn't load this</p>
+      <p className="mb-2 text-ink/80">{message}</p>
       {onRetry && (
-        <button onClick={onRetry} className="text-red-800 underline font-semibold">
+        <button onClick={onRetry} className="text-flag underline font-semibold">
           Try again
         </button>
       )}
@@ -108,52 +142,57 @@ function LoginPage({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-2">⚽</div>
-          <h1 className="text-2xl font-extrabold text-gray-800">Tunisian Score Prediction</h1>
-          <p className="text-gray-500 text-sm mt-1">Predict scores, climb the leaderboard</p>
+    <div className="min-h-screen bg-pitch floodlight-glow flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-4"><Crest size={56} /></div>
+          <Eyebrow tone="floodlight">Tunisian Ligue 1 · 2025/26</Eyebrow>
+          <h1 className="font-display text-3xl font-bold text-chalk uppercase tracking-wide">
+            Predict every score.
+          </h1>
+          <p className="text-chalk/60 text-sm mt-1 font-body">Fill your coupon, beat your league.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isRegister && (
+        <div className="bg-chalk rounded-ticket shadow-2xl p-8 relative">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isRegister && (
+              <input
+                type="text" placeholder="Username" value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-ink/10 rounded-lg font-body focus:outline-none focus:border-pitch bg-white"
+                required
+              />
+            )}
             <input
-              type="text" placeholder="Username" value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              type="email" placeholder="Email" value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-ink/10 rounded-lg font-body focus:outline-none focus:border-pitch bg-white"
               required
             />
-          )}
-          <input
-            type="email" placeholder="Email" value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          <input
-            type="password" placeholder="Password" value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
+            <input
+              type="password" placeholder="Password" value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-ink/10 rounded-lg font-body focus:outline-none focus:border-pitch bg-white"
+              required
+            />
 
-          {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded">{error}</p>}
+            {error && <p className="text-flag text-sm bg-flag/10 p-2 rounded-lg font-body">{error}</p>}
+
+            <button
+              type="submit" disabled={loading}
+              className="w-full bg-flag text-white py-3 rounded-lg font-display uppercase tracking-wide font-bold hover:bg-flag/90 disabled:opacity-50 transition shadow-lg"
+            >
+              {loading ? 'Please wait…' : isRegister ? 'Create account' : 'Log in'}
+            </button>
+          </form>
 
           <button
-            type="submit" disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-emerald-600 text-white py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-50 transition"
+            onClick={() => setIsRegister(!isRegister)}
+            className="w-full mt-4 text-mist text-sm hover:text-pitch font-body"
           >
-            {loading ? 'Please wait...' : isRegister ? 'Create account' : 'Log in'}
+            {isRegister ? 'Already have an account? Log in' : 'New here? Create an account'}
           </button>
-        </form>
-
-        <button
-          onClick={() => setIsRegister(!isRegister)}
-          className="w-full mt-4 text-gray-600 text-sm hover:text-blue-600"
-        >
-          {isRegister ? 'Already have an account? Log in' : 'New here? Create an account'}
-        </button>
+        </div>
       </div>
     </div>
   );
@@ -199,25 +238,25 @@ function LeaguesPage({ user, onSelectLeague }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-chalk p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
+        <div className="flex flex-wrap justify-between items-end gap-3 mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-800">My Leagues</h1>
-            <p className="text-gray-500 text-sm">Welcome back, {user.username} 👋</p>
+            <Eyebrow>Your competitions</Eyebrow>
+            <h1 className="font-display text-3xl font-bold text-ink uppercase tracking-wide">Leagues</h1>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => { setShowCreate(!showCreate); setShowJoin(false); setFormError(''); }}
-              className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 font-semibold shadow"
+              className="bg-pitch text-white px-4 py-2 rounded-lg hover:bg-pitch-light font-display uppercase text-sm font-bold tracking-wide shadow"
             >
-              + Create League
+              + Create
             </button>
             <button
               onClick={() => { setShowJoin(!showJoin); setShowCreate(false); setFormError(''); }}
-              className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 font-semibold shadow"
+              className="bg-flag text-white px-4 py-2 rounded-lg hover:bg-flag/90 font-display uppercase text-sm font-bold tracking-wide shadow"
             >
-              + Join League
+              + Join
             </button>
           </div>
         </div>
@@ -225,35 +264,35 @@ function LeaguesPage({ user, onSelectLeague }) {
         {formError && <div className="mb-4"><ErrorBox message={formError} /></div>}
 
         {showCreate && (
-          <form onSubmit={createLeague} className="bg-white p-6 rounded-2xl mb-6 shadow space-y-3">
+          <form onSubmit={createLeague} className="bg-white p-6 rounded-ticket mb-6 shadow space-y-3 border border-ink/5">
             <input
               type="text" placeholder="League name" value={leagueName}
               onChange={(e) => setLeagueName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl"
+              className="w-full px-4 py-2 border-2 border-ink/10 rounded-lg font-body"
               required
             />
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 font-semibold">
-              Create
+            <button type="submit" className="bg-pitch text-white px-4 py-2 rounded-lg hover:bg-pitch-light font-display uppercase text-sm font-bold tracking-wide">
+              Create league
             </button>
           </form>
         )}
 
         {showJoin && (
-          <form onSubmit={joinLeague} className="bg-white p-6 rounded-2xl mb-6 shadow space-y-3">
+          <form onSubmit={joinLeague} className="bg-white p-6 rounded-ticket mb-6 shadow space-y-3 border border-ink/5">
             <input
-              type="text" placeholder="Invite code (e.g., ABC123)" value={inviteCode}
+              type="text" placeholder="INVITE CODE" value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl tracking-widest font-mono"
+              className="w-full px-4 py-2 border-2 border-ink/10 rounded-lg font-score tracking-[0.3em] text-center"
               required
             />
-            <button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 font-semibold">
-              Join
+            <button type="submit" className="bg-flag text-white px-4 py-2 rounded-lg hover:bg-flag/90 font-display uppercase text-sm font-bold tracking-wide">
+              Join league
             </button>
           </form>
         )}
 
         {isLoading ? (
-          <Spinner label="Loading your leagues..." />
+          <Spinner label="Loading your leagues…" />
         ) : isError ? (
           <ErrorBox message={errMsg(error, 'Could not load leagues')} onRetry={refetch} />
         ) : leagues && leagues.length > 0 ? (
@@ -262,25 +301,23 @@ function LeaguesPage({ user, onSelectLeague }) {
               <div
                 key={league.id}
                 onClick={() => onSelectLeague(league.id)}
-                className="bg-white p-6 rounded-2xl shadow cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition"
+                className="bg-white p-5 rounded-ticket shadow cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition border border-ink/5"
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800">{league.name}</h3>
-                    <p className="text-gray-500 text-sm font-mono mt-1">Code: {league.invite_code}</p>
+                <div className="flex justify-between items-start gap-3">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-lg font-bold text-ink uppercase truncate">{league.name}</h3>
+                    <p className="text-mist text-xs font-score tracking-widest mt-1">{league.invite_code}</p>
+                    <p className="text-xs text-mist mt-2 font-body">{league.member_count ?? '?'} member(s)</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-extrabold text-blue-600">{league.my_points ?? 0}</p>
-                    <p className="text-xs text-gray-500">your points</p>
-                  </div>
+                  <ScoreDigit value={league.my_points ?? 0} size="sm" />
                 </div>
-                <p className="text-xs text-gray-400 mt-3">{league.member_count ?? '?'} member(s)</p>
               </div>
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow p-10 text-center text-gray-500">
-            No leagues yet — create one or join with a friend's invite code!
+          <div className="bg-white rounded-ticket shadow p-10 text-center text-mist border-2 border-dashed border-ink/10">
+            <p className="font-display uppercase tracking-wide font-bold text-ink mb-1">No leagues yet</p>
+            <p className="text-sm font-body">Create one, or join a friend's with their invite code.</p>
           </div>
         )}
       </div>
@@ -326,7 +363,6 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
 
   const predictedResult = resultFromScore(home, away);
   const potentialBase = predictedResult ? oddsForResult(match, predictedResult) : 0;
-
   const x2LockedByOther = x2Status?.x2_used && x2Status?.match_id !== match.id;
 
   const handleSubmit = async (e) => {
@@ -350,120 +386,116 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
   };
 
   return (
-    <div className={`rounded-2xl border p-4 transition ${isFinished ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200 hover:shadow'}`}>
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2">
-          <TeamBadge name={match.home_team} color={colorFor(match.home_team)} />
-          <span className="font-semibold text-gray-800 text-sm">{match.home_team}</span>
-          <span className="text-gray-400 text-xs px-1">vs</span>
-          <span className="font-semibold text-gray-800 text-sm">{match.away_team}</span>
-          <TeamBadge name={match.away_team} color={colorFor(match.away_team)} />
-        </div>
-        <span className="text-xs text-gray-500 whitespace-nowrap">
+    <div className={`rounded-ticket border p-4 transition ${isFinished ? 'bg-pitch/5 border-pitch/20' : 'bg-white border-ink/10 hover:shadow-md'}`}>
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-[11px] font-score text-mist tracking-wide">GW{match.gameweek}</span>
+        <span className="text-[11px] font-score text-mist tracking-wide">
           {new Date(match.kickoff_time).toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
 
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <TeamBadge name={match.home_team} color={colorFor(match.home_team)} />
+          <span className="font-display font-semibold text-ink text-sm truncate">{match.home_team}</span>
+        </div>
+        <span className="text-mist text-xs font-score shrink-0">vs</span>
+        <div className="flex items-center gap-2 min-w-0 justify-end">
+          <span className="font-display font-semibold text-ink text-sm truncate text-right">{match.away_team}</span>
+          <TeamBadge name={match.away_team} color={colorFor(match.away_team)} />
+        </div>
+      </div>
+
+      <div className="ticket-perf" />
+
       {isFinished ? (
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="inline-block bg-emerald-600 text-white text-xl font-extrabold px-3 py-1 rounded-lg">
-              {match.home_goals} - {match.away_goals}
-            </span>
-            <span className="ml-2 text-xs text-emerald-700 font-semibold">FULL TIME</span>
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-2">
+            <ScoreDigit value={match.home_goals} size="md" />
+            <span className="text-mist font-score">-</span>
+            <ScoreDigit value={match.away_goals} size="md" />
+            <span className="ml-2 text-[10px] font-display uppercase tracking-wider text-pitch font-bold">Full time</span>
           </div>
           {existingPrediction && (
             <div className="text-right">
-              <p className="text-2xl font-extrabold text-emerald-700">
+              <p className={`font-score text-xl font-bold ${existingPrediction.points_earned > 0 ? 'text-pitch' : 'text-mist'}`}>
                 {existingPrediction.points_earned > 0 ? `+${existingPrediction.points_earned}` : '0'}
               </p>
-              <p className="text-xs text-gray-500">points earned</p>
+              <p className="text-[10px] text-mist font-body">points earned</p>
             </div>
           )}
         </div>
       ) : isLocked ? (
-        <div className="bg-red-50 text-red-700 text-sm font-semibold rounded-lg px-3 py-2">
-          🔒 Predictions locked — kickoff {minutesLeft <= 0 ? 'now' : `in ${minutesLeft} min`}
+        <div className="bg-flag/5 text-flag text-sm font-semibold rounded-lg px-3 py-2 font-body">
+          🔒 Locked — kickoff {minutesLeft <= 0 ? 'now' : `in ${minutesLeft} min`}
           {existingPrediction && (
-            <div className="mt-1 text-gray-700 font-normal">
-              Your prediction: {existingPrediction.predicted_home_goals}-{existingPrediction.predicted_away_goals}
-              {existingPrediction.x2_applied && <span className="ml-1 text-purple-700 font-semibold">×2</span>}
+            <div className="mt-1 text-ink/70 font-normal flex items-center gap-2">
+              Your coupon:
+              <span className="font-score font-bold">{existingPrediction.predicted_home_goals}-{existingPrediction.predicted_away_goals}</span>
+              {existingPrediction.x2_applied && <span className="text-flag font-bold">×2</span>}
             </div>
           )}
         </div>
       ) : !editing ? (
-        <div className="flex justify-between items-center bg-blue-50 rounded-lg px-3 py-2">
-          <div>
-            <p className="text-emerald-700 font-bold">
-              ✓ You predicted {home}-{away} {x2 && <span className="text-purple-700">(×2)</span>}
-            </p>
-            <p className="text-xs text-gray-600 mt-0.5">
-              Worth {potentialBase * (x2 ? 2 : 1)}+ pts if correct
-            </p>
+        <div className="flex justify-between items-center bg-pitch/5 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-3">
+            <ScoreDigit value={home} size="sm" />
+            <span className="text-mist font-score">-</span>
+            <ScoreDigit value={away} size="sm" />
+            {x2 && <span className="text-flag font-display font-bold text-sm">×2</span>}
           </div>
-          <button onClick={() => setEditing(true)} className="text-blue-700 text-sm font-semibold hover:underline">
-            Edit
-          </button>
+          <div className="text-right">
+            <p className="text-[11px] text-mist font-body">{potentialBase * (x2 ? 2 : 1)}+ pts if correct</p>
+            <button onClick={() => setEditing(true)} className="text-pitch text-xs font-display uppercase font-bold tracking-wide hover:underline">
+              Edit
+            </button>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-2">
-          <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-wrap gap-3 items-center">
             <div className="flex items-center gap-2">
-              <input
-                type="number" min="0" max="10" placeholder="0" value={home}
-                onChange={(e) => setHome(e.target.value)}
-                className="w-14 px-2 py-2 border border-gray-300 rounded-lg text-center text-lg font-bold"
-                required
-              />
-              <span className="text-gray-400 font-bold">-</span>
-              <input
-                type="number" min="0" max="10" placeholder="0" value={away}
-                onChange={(e) => setAway(e.target.value)}
-                className="w-14 px-2 py-2 border border-gray-300 rounded-lg text-center text-lg font-bold"
-                required
-              />
+              <ScoreDigit value={home} onChange={setHome} editable size="md" />
+              <span className="text-mist font-score font-bold">-</span>
+              <ScoreDigit value={away} onChange={setAway} editable size="md" />
             </div>
 
             <label
-              className={`flex items-center gap-1 text-sm px-2 py-1 rounded-lg border ${
-                x2LockedByOther ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-purple-200 bg-purple-50 cursor-pointer'
+              className={`flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border-2 ${
+                x2LockedByOther ? 'opacity-40 cursor-not-allowed border-ink/10' : 'border-flag/30 bg-flag/5 cursor-pointer'
               }`}
               title={x2LockedByOther ? `X2 already used for ${x2Status.used_for_match}` : 'Double your points for this match'}
             >
-              <input
-                type="checkbox" checked={x2}
-                disabled={x2LockedByOther}
-                onChange={(e) => setX2(e.target.checked)}
-              />
-              <span className="font-bold text-purple-700">×2</span>
+              <input type="checkbox" checked={x2} disabled={x2LockedByOther} onChange={(e) => setX2(e.target.checked)} />
+              <span className="font-display font-bold text-flag">×2</span>
             </label>
 
             <button
               type="submit" disabled={loading}
-              className="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50"
+              className="ml-auto bg-pitch text-white px-4 py-2.5 rounded-lg text-sm font-display uppercase font-bold tracking-wide hover:bg-pitch-light disabled:opacity-50"
             >
-              {loading ? 'Saving...' : 'Save prediction'}
+              {loading ? 'Saving…' : 'Fill coupon'}
             </button>
           </div>
 
           {predictedResult && (
-            <p className="text-xs text-gray-500">
-              🎯 Potential: <span className="font-semibold text-gray-700">{potentialBase * (x2 ? 2 : 1)} pts</span> for a correct result
-              {home !== '' && away !== '' && <span> (plus a bonus if the exact score is right)</span>}
+            <p className="text-xs text-mist font-body">
+              🎯 Potential <span className="font-score font-bold text-ink">{potentialBase * (x2 ? 2 : 1)} pts</span> for a correct result
+              {home !== '' && away !== '' && <span> · more if the exact score lands</span>}
             </p>
           )}
 
           {x2LockedByOther && (
-            <p className="text-xs text-orange-600 bg-orange-50 rounded px-2 py-1">
+            <p className="text-xs text-flag bg-flag/5 rounded px-2 py-1 font-body">
               ⚠️ ×2 already used on {x2Status.used_for_match} this gameweek
             </p>
           )}
 
-          {localError && <p className="text-xs text-red-600">{localError}</p>}
+          {localError && <p className="text-xs text-flag font-body">{localError}</p>}
         </form>
       )}
 
-      <div className="mt-3 flex gap-3 text-[11px] text-gray-400">
+      <div className="mt-3 flex gap-4 text-[11px] font-score text-mist">
         <span>1: {match.odds_home}</span>
         <span>X: {match.odds_draw}</span>
         <span>2: {match.odds_away}</span>
@@ -475,52 +507,34 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
 // ============ LEAGUE DETAIL ============
 function LeagueDetailPage({ leagueId, onBack }) {
   const [gameweek, setGameweek] = useState(1);
-  const [tab, setTab] = useState('matches');
 
-  const {
-    data: matches, isLoading: matchesLoading, isError: matchesError, error: matchesErr, refetch: refetchMatches,
-  } = useQuery({
+  const { data: matches, isLoading: matchesLoading, isError: matchesError, error: matchesErr, refetch: refetchMatches } = useQuery({
     queryKey: ['matches', gameweek],
     queryFn: async () => (await api.get('/matches', { params: { gameweek } })).data,
   });
 
-  const {
-    data: leaderboard, isLoading: lbLoading, isError: lbError, error: lbErr, refetch: refetchLeaderboard,
-  } = useQuery({
+  const { data: leaderboard, isLoading: lbLoading, isError: lbError, error: lbErr, refetch: refetchLeaderboard } = useQuery({
     queryKey: ['leaderboard', leagueId],
     queryFn: async () => (await api.get(`/leagues/${leagueId}/standings`)).data,
   });
 
-  const {
-    data: userPredictions, refetch: refetchPredictions,
-  } = useQuery({
+  const { data: userPredictions, refetch: refetchPredictions } = useQuery({
     queryKey: ['user-predictions', leagueId],
     queryFn: async () => {
-      try {
-        return (await api.get('/user/predictions', { params: { league_id: leagueId } })).data;
-      } catch {
-        return [];
-      }
+      try { return (await api.get('/user/predictions', { params: { league_id: leagueId } })).data; }
+      catch { return []; }
     },
   });
 
   const { data: x2Status, refetch: refetchX2 } = useQuery({
     queryKey: ['x2-status', leagueId, gameweek],
     queryFn: async () => {
-      try {
-        return (await api.get(`/predictions/x2-status/${gameweek}`, { params: { league_id: leagueId } })).data;
-      } catch {
-        return { x2_used: false };
-      }
+      try { return (await api.get(`/predictions/x2-status/${gameweek}`, { params: { league_id: leagueId } })).data; }
+      catch { return { x2_used: false }; }
     },
   });
 
-  const refetchAll = () => {
-    refetchPredictions();
-    refetchLeaderboard();
-    refetchX2();
-  };
-
+  const refetchAll = () => { refetchPredictions(); refetchLeaderboard(); refetchX2(); };
   const getPredictionForMatch = (matchId) => userPredictions?.find((p) => p.match_id === matchId);
 
   const myTotalPotential = (userPredictions || [])
@@ -528,145 +542,141 @@ function LeagueDetailPage({ leagueId, onBack }) {
     .reduce((sum, p) => sum + (p.potential_base_points || 0) * (p.x2_multiplier || 1), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-chalk p-4">
       <div className="max-w-6xl mx-auto">
-        <button onClick={onBack} className="mb-4 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-100 font-semibold shadow-sm">
-          ← Back to Leagues
+        <button onClick={onBack} className="mb-4 bg-white border-2 border-ink/10 text-ink px-4 py-2 rounded-lg hover:bg-ink/5 font-display uppercase text-sm font-bold tracking-wide">
+          ← Leagues
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow p-6">
+            <div className="bg-white rounded-ticket shadow p-6 border border-ink/5">
               <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-                <h2 className="text-2xl font-extrabold text-gray-800">Gameweek {gameweek}</h2>
+                <div>
+                  <Eyebrow>This week's coupon</Eyebrow>
+                  <h2 className="font-display text-2xl font-bold text-ink uppercase">Gameweek {gameweek}</h2>
+                </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-semibold text-sm">
-                    ← Prev
-                  </button>
-                  <button onClick={() => setGameweek((g) => g + 1)} className="bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-semibold text-sm">
-                    Next →
-                  </button>
+                  <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-ink/5 px-3 py-1.5 rounded-lg hover:bg-ink/10 font-display text-xs font-bold uppercase tracking-wide">← Prev</button>
+                  <button onClick={() => setGameweek((g) => g + 1)} className="bg-ink/5 px-3 py-1.5 rounded-lg hover:bg-ink/10 font-display text-xs font-bold uppercase tracking-wide">Next →</button>
                 </div>
               </div>
 
               {myTotalPotential > 0 && (
-                <div className="bg-gradient-to-r from-blue-50 to-emerald-50 border border-blue-100 rounded-xl px-4 py-3 mb-4">
-                  <p className="text-sm text-gray-700">
-                    🎯 You could earn up to <span className="font-extrabold text-blue-700">{myTotalPotential} pts</span> from your live predictions this gameweek
+                <div className="bg-floodlight/15 border-2 border-floodlight/40 rounded-lg px-4 py-3 mb-4">
+                  <p className="text-sm text-ink font-body">
+                    🎯 Live coupon worth up to <span className="font-score font-bold">{myTotalPotential} pts</span> this gameweek
                   </p>
                 </div>
               )}
 
               {matchesLoading ? (
-                <Spinner label="Loading matches..." />
+                <Spinner label="Loading matches…" />
               ) : matchesError ? (
                 <ErrorBox message={errMsg(matchesErr, 'Could not load matches')} onRetry={refetchMatches} />
               ) : matches && matches.length > 0 ? (
                 <div className="space-y-3">
                   {matches.map((match) => (
                     <MatchCard
-                      key={match.id}
-                      match={match}
-                      leagueId={leagueId}
+                      key={match.id} match={match} leagueId={leagueId}
                       existingPrediction={getPredictionForMatch(match.id)}
-                      x2Status={x2Status}
-                      onSaved={refetchAll}
+                      x2Status={x2Status} onSaved={refetchAll}
                     />
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">No matches scheduled for this gameweek yet.</p>
+                <p className="text-mist text-center py-8 font-body">No matches scheduled for this gameweek yet.</p>
               )}
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow p-6 h-fit">
-            <h3 className="text-xl font-extrabold text-gray-800 mb-4">🏆 Leaderboard</h3>
+          <div className="bg-white rounded-ticket shadow p-6 h-fit border border-ink/5">
+            <Eyebrow tone="flag">Standings</Eyebrow>
+            <h3 className="font-display text-xl font-bold text-ink uppercase mb-4">Leaderboard</h3>
 
             {lbLoading ? (
-              <Spinner label="Loading standings..." />
+              <Spinner label="Loading standings…" />
             ) : lbError ? (
               <ErrorBox message={errMsg(lbErr, 'Could not load leaderboard')} onRetry={refetchLeaderboard} />
             ) : leaderboard && leaderboard.length > 0 ? (
               <div className="space-y-2">
                 {leaderboard.map((entry) => {
-                  const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`;
-                  const bg = entry.rank === 1 ? 'bg-yellow-50 border-yellow-200' : entry.rank === 2 ? 'bg-gray-50 border-gray-200' : entry.rank === 3 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100';
+                  const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : null;
+                  const bg = entry.rank <= 3 ? 'bg-floodlight/10 border-floodlight/30' : 'bg-white border-ink/5';
                   return (
-                    <div key={entry.user_id} className={`flex justify-between items-center p-3 rounded-xl border ${bg}`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold w-7 text-center">{medal}</span>
-                        <span className="font-semibold text-gray-800 text-sm">{entry.username}</span>
+                    <div key={entry.user_id} className={`flex justify-between items-center p-3 rounded-lg border ${bg}`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-7 text-center font-display font-bold text-ink text-sm">{medal || `#${entry.rank}`}</span>
+                        <span className="font-body font-semibold text-ink text-sm truncate">{entry.username}</span>
                       </div>
-                      <span className="text-lg font-extrabold text-blue-600">{entry.points}</span>
+                      <ScoreDigit value={entry.points} size="sm" />
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">No points yet — be the first to score!</p>
+              <p className="text-mist text-sm font-body">No points yet — be the first to score.</p>
             )}
           </div>
         </div>
 
-        {/* Points breakdown */}
-        <div className="bg-white rounded-2xl shadow p-6 mt-6">
-          <h3 className="text-xl font-extrabold text-gray-800 mb-4">📊 Your Predictions Breakdown</h3>
+        <div className="bg-white rounded-ticket shadow p-6 mt-6 border border-ink/5">
+          <Eyebrow>Your coupon, match by match</Eyebrow>
+          <h3 className="font-display text-xl font-bold text-ink uppercase mb-4">Predictions breakdown</h3>
+
           {userPredictions && userPredictions.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {userPredictions
                 .slice()
                 .sort((a, b) => new Date(b.kickoff_time) - new Date(a.kickoff_time))
                 .map((pred) => (
-                  <div key={pred.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <div key={pred.id} className="border border-ink/10 rounded-lg p-3 bg-chalk">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold text-gray-800 text-sm">{pred.home_team} vs {pred.away_team}</p>
-                        <p className="text-xs text-gray-500">GW{pred.gameweek} · You: {pred.predicted_home_goals}-{pred.predicted_away_goals}</p>
+                      <div className="min-w-0">
+                        <p className="font-display font-semibold text-ink text-sm truncate">{pred.home_team} vs {pred.away_team}</p>
+                        <p className="text-xs text-mist font-body">GW{pred.gameweek} · You: <span className="font-score">{pred.predicted_home_goals}-{pred.predicted_away_goals}</span></p>
                         {pred.match_status === 'finished' && (
-                          <p className="text-xs text-blue-600 font-semibold">Actual: {pred.actual_home_goals}-{pred.actual_away_goals}</p>
+                          <p className="text-xs text-pitch font-score font-semibold">Actual: {pred.actual_home_goals}-{pred.actual_away_goals}</p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0 ml-2">
                         {pred.match_status === 'finished' ? (
-                          <p className={`text-xl font-extrabold ${pred.points_earned > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>{pred.points_earned}</p>
+                          <p className={`font-score text-xl font-bold ${pred.points_earned > 0 ? 'text-pitch' : 'text-mist'}`}>{pred.points_earned}</p>
                         ) : (
-                          <p className="text-xl font-extrabold text-blue-500">
-                            {(pred.potential_base_points || 0) * (pred.x2_multiplier || 1)}<span className="text-xs text-gray-400">*</span>
+                          <p className="font-score text-xl font-bold text-flag">
+                            {(pred.potential_base_points || 0) * (pred.x2_multiplier || 1)}<span className="text-xs text-mist">*</span>
                           </p>
                         )}
-                        <p className="text-[10px] text-gray-500">{pred.match_status === 'finished' ? 'earned' : 'potential'}</p>
+                        <p className="text-[10px] text-mist font-body">{pred.match_status === 'finished' ? 'earned' : 'potential'}</p>
                       </div>
                     </div>
 
                     {pred.match_status === 'finished' && pred.points_earned > 0 && (
-                      <div className="bg-white rounded-lg p-2 text-xs space-y-0.5 border-t border-gray-200 mt-2">
-                        <div className="flex justify-between"><span className="text-gray-600">Base (correct result)</span><span className="font-semibold">{pred.base_points}</span></div>
+                      <div className="bg-white rounded-lg p-2 text-xs space-y-0.5 border-t border-ink/10 mt-2 font-body">
+                        <div className="flex justify-between"><span className="text-mist">Base (correct result)</span><span className="font-score font-semibold">{pred.base_points}</span></div>
                         {pred.is_exact_match && (
-                          <div className="flex justify-between text-orange-600"><span>+ Exact score bonus</span><span className="font-semibold">+{pred.exact_bonus}</span></div>
+                          <div className="flex justify-between text-floodlight-dark"><span>+ Exact score bonus</span><span className="font-score font-semibold">+{pred.exact_bonus}</span></div>
                         )}
                         {pred.x2_applied && (
-                          <div className="flex justify-between text-purple-600"><span>× X2 multiplier</span><span className="font-semibold">×2</span></div>
+                          <div className="flex justify-between text-flag"><span>× X2 multiplier</span><span className="font-score font-semibold">×2</span></div>
                         )}
                       </div>
                     )}
 
                     <div className="mt-2 flex gap-1 flex-wrap">
-                      {pred.is_exact_match && <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">🎯 Exact</span>}
-                      {pred.x2_applied && <span className="bg-purple-100 text-purple-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">⚡ X2</span>}
-                      {pred.match_status === 'finished' ? (
-                        <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">✓ Finished</span>
-                      ) : (
-                        <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">⏳ Upcoming</span>
-                      )}
+                      {pred.is_exact_match && <span className="bg-floodlight/20 text-ink text-[10px] px-2 py-0.5 rounded-full font-display font-bold uppercase">🎯 Exact</span>}
+                      {pred.x2_applied && <span className="bg-flag/10 text-flag text-[10px] px-2 py-0.5 rounded-full font-display font-bold uppercase">×2</span>}
+                      {pred.match_status === 'finished'
+                        ? <span className="bg-pitch/10 text-pitch text-[10px] px-2 py-0.5 rounded-full font-display font-bold uppercase">Finished</span>
+                        : <span className="bg-ink/5 text-mist text-[10px] px-2 py-0.5 rounded-full font-display font-bold uppercase">Upcoming</span>}
                     </div>
                   </div>
                 ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">No predictions yet. Submit one above to see it here!</p>
+            <p className="text-mist text-sm font-body">No predictions yet. Fill in a score above to see it here.</p>
           )}
-          <p className="text-[11px] text-gray-400 mt-3">* Potential points assume a correct result; an exact-score bonus may add more.</p>
+          <p className="text-[11px] text-mist mt-3 font-body">* Assumes a correct result; an exact-score bonus may add more.</p>
         </div>
       </div>
     </div>
@@ -681,7 +691,7 @@ function AdminPage({ onBack }) {
   const [homeGoals, setHomeGoals] = useState('');
   const [awayGoals, setAwayGoals] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null); // {type: 'success'|'error', text}
+  const [message, setMessage] = useState(null);
 
   const { data: matches, isLoading: matchesLoading, isError: matchesError, error: matchesErr, refetch: refetchMatches } = useQuery({
     queryKey: ['admin-matches', gameweek],
@@ -706,9 +716,7 @@ function AdminPage({ onBack }) {
         params: { home_goals: parseInt(homeGoals), away_goals: parseInt(awayGoals) },
       });
       setMessage({ type: 'success', text: `Result set: ${selectedMatch.home_team} ${homeGoals}-${awayGoals} ${selectedMatch.away_team} · ${response.data.predictions_updated} predictions updated` });
-      setSelectedMatch(null);
-      setHomeGoals('');
-      setAwayGoals('');
+      setSelectedMatch(null); setHomeGoals(''); setAwayGoals('');
       refetchMatches();
     } catch (err) {
       setMessage({ type: 'error', text: errMsg(err, 'Could not set result') });
@@ -718,7 +726,7 @@ function AdminPage({ onBack }) {
   };
 
   const handleReset = async (match) => {
-    if (!window.confirm(`Reset result for ${match.home_team} vs ${match.away_team}? All related points will be recalculated.`)) return;
+    if (!window.confirm(`Reset result for ${match.home_team} vs ${match.away_team}? Points will be recalculated.`)) return;
     try {
       const response = await api.put(`/admin/matches/${match.id}/reset`);
       setMessage({ type: 'success', text: `${response.data.message} · ${response.data.predictions_reset} predictions reset` });
@@ -729,7 +737,7 @@ function AdminPage({ onBack }) {
   };
 
   const handleDeleteLeague = async (leagueId, leagueName) => {
-    if (!window.confirm(`Delete league "${leagueName}"? This removes all its predictions and members. This cannot be undone.`)) return;
+    if (!window.confirm(`Delete league "${leagueName}"? This removes all its predictions and members.`)) return;
     try {
       const response = await api.delete(`/leagues/${leagueId}`);
       setMessage({ type: 'success', text: `${response.data.message} · ${response.data.deleted_members} members, ${response.data.deleted_predictions} predictions removed` });
@@ -740,22 +748,23 @@ function AdminPage({ onBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-chalk p-4">
       <div className="max-w-5xl mx-auto">
-        <button onClick={onBack} className="mb-4 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-100 font-semibold shadow-sm">
+        <button onClick={onBack} className="mb-4 bg-white border-2 border-ink/10 text-ink px-4 py-2 rounded-lg hover:bg-ink/5 font-display uppercase text-sm font-bold tracking-wide">
           ← Back
         </button>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <h1 className="text-2xl font-extrabold text-gray-800 mb-6">⚙️ Admin Dashboard</h1>
+        <div className="bg-white rounded-ticket shadow p-6 border border-ink/5">
+          <Eyebrow tone="flag">Control room</Eyebrow>
+          <h1 className="font-display text-2xl font-bold text-ink uppercase mb-6">Admin dashboard</h1>
 
-          <div className="flex gap-2 mb-6 border-b border-gray-200">
-            {[['matches', '📋 Match Results'], ['leagues', '🗑️ Manage Leagues']].map(([key, label]) => (
+          <div className="flex gap-2 mb-6 border-b-2 border-ink/10">
+            {[['matches', 'Match results'], ['leagues', 'Manage leagues']].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => { setTab(key); setMessage(null); }}
-                className={`px-4 py-2 font-semibold text-sm border-b-2 -mb-px transition ${
-                  tab === key ? 'text-blue-600 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-700'
+                className={`px-4 py-2 font-display uppercase text-xs font-bold tracking-wide border-b-2 -mb-0.5 transition ${
+                  tab === key ? 'text-flag border-flag' : 'text-mist border-transparent hover:text-ink'
                 }`}
               >
                 {label}
@@ -764,7 +773,7 @@ function AdminPage({ onBack }) {
           </div>
 
           {message && (
-            <div className={`mb-6 p-3 rounded-xl text-sm ${message.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            <div className={`mb-6 p-3 rounded-lg text-sm font-body ${message.type === 'success' ? 'bg-pitch/10 text-pitch border border-pitch/30' : 'bg-flag/10 text-flag border border-flag/30'}`}>
               {message.type === 'success' ? '✅ ' : '❌ '}{message.text}
             </div>
           )}
@@ -772,28 +781,32 @@ function AdminPage({ onBack }) {
           {tab === 'matches' && (
             <div>
               <div className="flex gap-2 items-center mb-6">
-                <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-gray-100 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-gray-200">← Prev</button>
-                <span className="px-4 py-1.5 bg-blue-100 rounded-lg font-bold text-blue-800 text-sm">GW {gameweek}</span>
-                <button onClick={() => setGameweek((g) => g + 1)} className="bg-gray-100 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-gray-200">Next →</button>
+                <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-ink/5 px-3 py-1.5 rounded-lg font-display text-xs font-bold uppercase hover:bg-ink/10">← Prev</button>
+                <span className="px-4 py-1.5 bg-floodlight/20 rounded-lg font-score font-bold text-ink text-sm">GW {gameweek}</span>
+                <button onClick={() => setGameweek((g) => g + 1)} className="bg-ink/5 px-3 py-1.5 rounded-lg font-display text-xs font-bold uppercase hover:bg-ink/10">Next →</button>
               </div>
 
               {matchesLoading ? (
-                <Spinner label="Loading matches..." />
+                <Spinner label="Loading matches…" />
               ) : matchesError ? (
                 <ErrorBox message={errMsg(matchesErr, 'Could not load matches')} onRetry={refetchMatches} />
               ) : (
                 <>
                   {finished.length > 0 && (
                     <div className="mb-6">
-                      <h2 className="text-lg font-bold mb-3 text-emerald-700">✓ Finished ({finished.length})</h2>
+                      <h2 className="font-display text-sm font-bold uppercase mb-3 text-pitch tracking-wide">Finished ({finished.length})</h2>
                       <div className="space-y-2">
                         {finished.map((match) => (
-                          <div key={match.id} className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex justify-between items-center">
+                          <div key={match.id} className="p-4 rounded-lg bg-pitch/5 border border-pitch/20 flex justify-between items-center">
                             <div>
-                              <p className="font-semibold text-gray-800 text-sm">{match.home_team} vs {match.away_team}</p>
-                              <p className="text-2xl font-extrabold text-emerald-700">{match.home_goals}-{match.away_goals}</p>
+                              <p className="font-display font-semibold text-ink text-sm">{match.home_team} vs {match.away_team}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <ScoreDigit value={match.home_goals} size="sm" />
+                                <span className="text-mist font-score">-</span>
+                                <ScoreDigit value={match.away_goals} size="sm" />
+                              </div>
                             </div>
-                            <button onClick={() => handleReset(match)} className="bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-orange-700">
+                            <button onClick={() => handleReset(match)} className="bg-flag text-white px-4 py-2 rounded-lg font-display uppercase text-xs font-bold tracking-wide hover:bg-flag/90">
                               ↶ Reset
                             </button>
                           </div>
@@ -802,44 +815,35 @@ function AdminPage({ onBack }) {
                     </div>
                   )}
 
-                  <h2 className="text-lg font-bold mb-3 text-gray-800">Upcoming ({upcoming.length})</h2>
+                  <h2 className="font-display text-sm font-bold uppercase mb-3 text-ink tracking-wide">Upcoming ({upcoming.length})</h2>
                   <div className="space-y-2 mb-6">
-                    {upcoming.length === 0 && <p className="text-gray-500 text-sm">No upcoming matches this gameweek.</p>}
+                    {upcoming.length === 0 && <p className="text-mist text-sm font-body">No upcoming matches this gameweek.</p>}
                     {upcoming.map((match) => (
                       <div
-                        key={match.id}
-                        onClick={() => setSelectedMatch(match)}
-                        className={`p-4 border rounded-xl cursor-pointer transition ${
-                          selectedMatch?.id === match.id ? 'bg-blue-50 border-blue-400' : 'bg-white border-gray-200 hover:bg-gray-50'
+                        key={match.id} onClick={() => setSelectedMatch(match)}
+                        className={`p-4 border rounded-lg cursor-pointer transition ${
+                          selectedMatch?.id === match.id ? 'bg-floodlight/10 border-floodlight' : 'bg-white border-ink/10 hover:bg-ink/5'
                         }`}
                       >
                         <div className="flex justify-between">
-                          <span className="font-semibold text-sm">{match.home_team} vs {match.away_team}</span>
-                          <span className="text-xs text-gray-500">{new Date(match.kickoff_time).toLocaleString()}</span>
+                          <span className="font-body font-semibold text-sm">{match.home_team} vs {match.away_team}</span>
+                          <span className="text-xs text-mist font-score">{new Date(match.kickoff_time).toLocaleString()}</span>
                         </div>
                       </div>
                     ))}
                   </div>
 
                   {selectedMatch && (
-                    <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
-                      <h3 className="font-bold mb-4">Set result: {selectedMatch.home_team} vs {selectedMatch.away_team}</h3>
-                      <form onSubmit={handleSetResult} className="flex flex-wrap gap-4 items-end">
-                        <div>
-                          <label className="block text-xs font-semibold mb-1 text-gray-600">{selectedMatch.home_team}</label>
-                          <input type="number" min="0" max="10" value={homeGoals} onChange={(e) => setHomeGoals(e.target.value)}
-                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center text-xl font-bold" required />
-                        </div>
-                        <span className="text-xl font-bold pb-2">-</span>
-                        <div>
-                          <label className="block text-xs font-semibold mb-1 text-gray-600">{selectedMatch.away_team}</label>
-                          <input type="number" min="0" max="10" value={awayGoals} onChange={(e) => setAwayGoals(e.target.value)}
-                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center text-xl font-bold" required />
-                        </div>
-                        <button type="submit" disabled={loading} className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50">
-                          {loading ? 'Setting...' : 'Set Result'}
+                    <div className="bg-floodlight/10 p-6 rounded-lg border-2 border-floodlight/40">
+                      <h3 className="font-display font-bold uppercase mb-4 text-sm">Set result: {selectedMatch.home_team} vs {selectedMatch.away_team}</h3>
+                      <form onSubmit={handleSetResult} className="flex flex-wrap gap-4 items-center">
+                        <ScoreDigit value={homeGoals} onChange={setHomeGoals} editable size="lg" />
+                        <span className="font-score text-xl font-bold text-mist">-</span>
+                        <ScoreDigit value={awayGoals} onChange={setAwayGoals} editable size="lg" />
+                        <button type="submit" disabled={loading} className="bg-pitch text-white px-6 py-3 rounded-lg font-display uppercase text-sm font-bold tracking-wide hover:bg-pitch-light disabled:opacity-50">
+                          {loading ? 'Setting…' : 'Set result'}
                         </button>
-                        <button type="button" onClick={() => setSelectedMatch(null)} className="text-gray-500 text-sm hover:underline">
+                        <button type="button" onClick={() => setSelectedMatch(null)} className="text-mist text-sm hover:underline font-body">
                           Cancel
                         </button>
                       </form>
@@ -853,38 +857,35 @@ function AdminPage({ onBack }) {
           {tab === 'leagues' && (
             <div>
               {leaguesLoading ? (
-                <Spinner label="Loading leagues..." />
+                <Spinner label="Loading leagues…" />
               ) : leaguesError ? (
                 <ErrorBox message={errMsg(leaguesErr, 'Could not load leagues')} onRetry={refetchLeagues} />
               ) : (
                 <>
-                  <h2 className="text-lg font-bold mb-4">All Leagues ({allLeagues?.length || 0})</h2>
+                  <h2 className="font-display text-sm font-bold uppercase mb-4 text-ink tracking-wide">All leagues ({allLeagues?.length || 0})</h2>
                   {allLeagues && allLeagues.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {allLeagues.map((league) => (
-                        <div key={league.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                        <div key={league.id} className="bg-chalk border border-ink/10 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h3 className="font-semibold text-gray-800">{league.name}</h3>
-                              <p className="text-xs text-gray-500 font-mono">{league.invite_code}</p>
-                              <p className="text-xs text-gray-500">by {league.creator}</p>
+                            <div className="min-w-0">
+                              <h3 className="font-display font-semibold text-ink truncate">{league.name}</h3>
+                              <p className="text-xs text-mist font-score">{league.invite_code}</p>
+                              <p className="text-xs text-mist font-body">by {league.creator}</p>
                             </div>
-                            <div className="text-right">
-                              <p className="text-xl font-extrabold text-blue-600">{league.members}</p>
-                              <p className="text-[10px] text-gray-500">members</p>
-                            </div>
+                            <ScoreDigit value={league.members} size="sm" />
                           </div>
                           <div className="flex gap-1 flex-wrap text-xs mb-3">
-                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">{league.predictions} predictions</span>
+                            <span className="bg-pitch/10 text-pitch px-2 py-0.5 rounded-full font-body">{league.predictions} predictions</span>
                           </div>
-                          <button onClick={() => handleDeleteLeague(league.id, league.name)} className="w-full bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 font-semibold text-sm">
-                            🗑️ Delete League
+                          <button onClick={() => handleDeleteLeague(league.id, league.name)} className="w-full bg-flag text-white px-3 py-2 rounded-lg hover:bg-flag/90 font-display uppercase text-xs font-bold tracking-wide">
+                            🗑️ Delete league
                           </button>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm">No leagues found.</p>
+                    <p className="text-mist text-sm font-body">No leagues found.</p>
                   )}
                 </>
               )}
@@ -918,19 +919,25 @@ function AppShell() {
   if (!user) return <LoginPage onLogin={setUser} />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-gradient-to-r from-slate-900 to-blue-900 text-white p-4 shadow-lg">
+    <div className="min-h-screen bg-chalk">
+      <nav className="bg-pitch text-chalk p-4 shadow-lg border-b-4 border-floodlight">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-lg font-extrabold flex items-center gap-2">⚽ Tunisian Score Prediction</h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold hidden sm:block">{user.username}</span>
+            <Crest size={34} />
+            <div>
+              <p className="font-display font-bold uppercase tracking-wide text-sm leading-none">Prono TN</p>
+              <p className="text-[10px] text-chalk/60 font-body">Tunisian Ligue 1 predictions</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-body font-semibold hidden sm:block">{user.username}</span>
             {user.username === 'admin' && (
-              <button onClick={() => setSelectedLeague('admin')} className="bg-purple-600 px-3 py-1.5 rounded-lg hover:bg-purple-700 text-sm font-semibold">
-                ⚙️ Admin
+              <button onClick={() => setSelectedLeague('admin')} className="bg-floodlight text-ink px-3 py-1.5 rounded-lg hover:opacity-90 text-xs font-display font-bold uppercase tracking-wide">
+                Admin
               </button>
             )}
-            <button onClick={handleLogout} className="bg-red-600/90 px-3 py-1.5 rounded-lg hover:bg-red-700 text-sm font-semibold">
-              Logout
+            <button onClick={handleLogout} className="bg-flag px-3 py-1.5 rounded-lg hover:bg-flag/90 text-xs font-display font-bold uppercase tracking-wide">
+              Log out
             </button>
           </div>
         </div>

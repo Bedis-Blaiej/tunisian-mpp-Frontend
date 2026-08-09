@@ -1,0 +1,127 @@
+/*
+  DESIGN SYSTEM — "Matchday Coupon"
+  ----------------------------------
+  Concept: the app is a score-prediction pools coupon. The visual language
+  borrows from two physical objects from that world: the paper betting
+  coupon (perforated stub, chalky paper, stamped ink) and the stadium
+  scoreboard (flip-digit numerals under floodlight glow). Every score or
+  point total in the product uses the same "scoreboard digit" treatment,
+  so it reads as one consistent signature rather than a generic stat.
+
+  Palette
+    --pitch        #0B3D2E   deep turf green — nav, primary surfaces
+    --pitch-light  #124B39   lighter turf — hovers, secondary surfaces
+    --chalk        #F5F3EC   paper background
+    --flag         #D2232A   accent red — used sparingly (CTAs, alerts)
+    --floodlight   #F2B705   accent gold — scoreboard numerals, highlights
+    --ink          #101820   near-black — scoreboard chip background, text
+
+  Type
+    Display: Oswald    — condensed, sporty, used uppercase for headers/eyebrows
+    Body:    Inter      — everyday reading text
+    Numerals: JetBrains Mono — every score, odds figure and point total
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+:root {
+  --pitch: #0B3D2E;
+  --pitch-light: #124B39;
+  --chalk: #F5F3EC;
+  --flag: #D2232A;
+  --floodlight: #F2B705;
+  --ink: #101820;
+  --mist: #7C8B85;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--chalk);
+  background-image: radial-gradient(circle at 1px 1px, rgba(16, 24, 32, 0.06) 1px, transparent 0);
+  background-size: 22px 22px;
+  color: var(--ink);
+}
+
+.font-display {
+  font-family: 'Oswald', sans-serif;
+}
+
+.font-score {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Perforated ticket-stub divider, used inside match/coupon cards */
+.ticket-perf {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed rgba(16, 24, 32, 0.16);
+  margin: 14px 2px;
+}
+.ticket-perf::before,
+.ticket-perf::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  background: var(--chalk);
+  border-radius: 50%;
+  border: 2px solid rgba(16, 24, 32, 0.08);
+}
+.ticket-perf::before {
+  left: -22px;
+}
+.ticket-perf::after {
+  right: -22px;
+}
+
+/* Flip-scoreboard digit — the app's signature element.
+   Used for score inputs, finished scores, and leaderboard point totals. */
+.scoreboard-digit {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--ink);
+  color: var(--floodlight);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  text-shadow: 0 0 8px rgba(242, 183, 5, 0.35);
+}
+input.scoreboard-digit::-webkit-inner-spin-button,
+input.scoreboard-digit::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input.scoreboard-digit {
+  -moz-appearance: textfield;
+}
+input.scoreboard-digit:focus {
+  outline: 2px solid var(--floodlight);
+  outline-offset: 2px;
+}
+
+/* Crest / logo mark — hexagonal club-badge silhouette */
+.crest {
+  clip-path: polygon(50% 0%, 100% 20%, 100% 70%, 50% 100%, 0% 70%, 0% 20%);
+}
+
+/* Subtle floodlight glow used behind hero/login panels */
+.floodlight-glow {
+  background:
+    radial-gradient(600px circle at 20% 0%, rgba(242, 183, 5, 0.14), transparent 55%),
+    radial-gradient(600px circle at 100% 100%, rgba(210, 35, 42, 0.10), transparent 55%);
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
