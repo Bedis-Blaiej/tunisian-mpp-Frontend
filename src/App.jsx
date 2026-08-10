@@ -8,6 +8,11 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import axios from 'axios';
 import './design-system.css';
 
+/** Small reusable bordered pill for any "points to gain / potential points" figure. */
+function PointsPill({ children }) {
+  return <span className="points-pill">{children}</span>;
+}
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const queryClient = new QueryClient({
@@ -33,7 +38,7 @@ function errMsg(err, fallback = 'Something went wrong') {
 function Crest({ size = 40 }) {
   return (
     <div
-      className="crest bg-floodlight flex items-center justify-center font-display font-bold text-ink shrink-0"
+      className="crest bg-floodlight flex items-center justify-center font-display font-bold text-chalk shrink-0"
       style={{ width: size, height: size, fontSize: size * 0.38 }}
     >
       TN
@@ -83,7 +88,7 @@ function ScoreDigit({ value, onChange, editable = false, size = 'md' }) {
 }
 
 function Eyebrow({ children, tone = 'pitch' }) {
-  const tones = { pitch: 'text-pitch', floodlight: 'text-floodlight', flag: 'text-flag', mist: 'text-mist' };
+  const tones = { pitch: 'text-pitch', floodlight: 'text-floodlight', flag: 'text-flag', mist: 'text-ink/55' };
   return (
     <p className={`font-display uppercase tracking-[0.2em] text-xs font-semibold ${tones[tone]} mb-1`}>
       {children}
@@ -93,7 +98,7 @@ function Eyebrow({ children, tone = 'pitch' }) {
 
 function Spinner({ label = 'Loading…' }) {
   return (
-    <div className="flex flex-col items-center justify-center py-10 text-mist">
+    <div className="flex flex-col items-center justify-center py-10 text-ink/55">
       <div className="w-8 h-8 border-4 border-pitch/20 border-t-pitch rounded-full animate-spin mb-3" />
       <p className="text-sm font-body">{label}</p>
     </div>
@@ -180,7 +185,7 @@ function LoginPage({ onLogin }) {
 
             <button
               type="submit" disabled={loading}
-              className="w-full bg-flag text-white py-3 rounded-lg font-display uppercase tracking-wide font-bold hover:bg-flag/90 disabled:opacity-50 transition shadow-lg"
+              className="w-full bg-flag text-white py-3 rounded-lg font-display uppercase tracking-wide font-bold hover:bg-flag/90 disabled:opacity-50 transition shadow-lg border-2 border-ink"
             >
               {loading ? 'Please wait…' : isRegister ? 'Create account' : 'Log in'}
             </button>
@@ -188,7 +193,7 @@ function LoginPage({ onLogin }) {
 
           <button
             onClick={() => setIsRegister(!isRegister)}
-            className="w-full mt-4 text-mist text-sm hover:text-pitch font-body"
+            className="w-full mt-4 text-ink/55 text-sm hover:text-pitch font-body border-2 border-transparent hover:border-pitch/20 rounded-lg py-2 transition"
           >
             {isRegister ? 'Already have an account? Log in' : 'New here? Create an account'}
           </button>
@@ -248,13 +253,13 @@ function LeaguesPage({ user, onSelectLeague }) {
           <div className="flex gap-2">
             <button
               onClick={() => { setShowCreate(!showCreate); setShowJoin(false); setFormError(''); }}
-              className="bg-pitch text-white px-4 py-2 rounded-lg hover:bg-pitch-light font-display uppercase text-sm font-bold tracking-wide shadow"
+              className="bg-pitch text-white px-4 py-2 rounded-lg hover:bg-pitch-light font-display uppercase text-sm font-bold tracking-wide shadow border-2 border-ink"
             >
               + Create
             </button>
             <button
               onClick={() => { setShowJoin(!showJoin); setShowCreate(false); setFormError(''); }}
-              className="bg-flag text-white px-4 py-2 rounded-lg hover:bg-flag/90 font-display uppercase text-sm font-bold tracking-wide shadow"
+              className="bg-flag text-white px-4 py-2 rounded-lg hover:bg-flag/90 font-display uppercase text-sm font-bold tracking-wide shadow border-2 border-ink"
             >
               + Join
             </button>
@@ -271,7 +276,7 @@ function LeaguesPage({ user, onSelectLeague }) {
               className="w-full px-4 py-2 border-2 border-ink/10 rounded-lg font-body"
               required
             />
-            <button type="submit" className="bg-pitch text-white px-4 py-2 rounded-lg hover:bg-pitch-light font-display uppercase text-sm font-bold tracking-wide">
+            <button type="submit" className="bg-pitch text-white px-4 py-2 rounded-lg hover:bg-pitch-light font-display uppercase text-sm font-bold tracking-wide border-2 border-ink">
               Create league
             </button>
           </form>
@@ -285,7 +290,7 @@ function LeaguesPage({ user, onSelectLeague }) {
               className="w-full px-4 py-2 border-2 border-ink/10 rounded-lg font-score tracking-[0.3em] text-center"
               required
             />
-            <button type="submit" className="bg-flag text-white px-4 py-2 rounded-lg hover:bg-flag/90 font-display uppercase text-sm font-bold tracking-wide">
+            <button type="submit" className="bg-flag text-white px-4 py-2 rounded-lg hover:bg-flag/90 font-display uppercase text-sm font-bold tracking-wide border-2 border-ink">
               Join league
             </button>
           </form>
@@ -306,8 +311,8 @@ function LeaguesPage({ user, onSelectLeague }) {
                 <div className="flex justify-between items-start gap-3">
                   <div className="min-w-0">
                     <h3 className="font-display text-lg font-bold text-ink uppercase truncate">{league.name}</h3>
-                    <p className="text-mist text-xs font-score tracking-widest mt-1">{league.invite_code}</p>
-                    <p className="text-xs text-mist mt-2 font-body">{league.member_count ?? '?'} member(s)</p>
+                    <p className="text-ink/55 text-xs font-score tracking-widest mt-1">{league.invite_code}</p>
+                    <p className="text-xs text-ink/55 mt-2 font-body">{league.member_count ?? '?'} member(s)</p>
                   </div>
                   <ScoreDigit value={league.my_points ?? 0} size="sm" />
                 </div>
@@ -315,7 +320,7 @@ function LeaguesPage({ user, onSelectLeague }) {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-ticket shadow p-10 text-center text-mist border-2 border-dashed border-ink/10">
+          <div className="bg-white rounded-ticket shadow p-10 text-center text-ink/55 border-2 border-dashed border-ink/10">
             <p className="font-display uppercase tracking-wide font-bold text-ink mb-1">No leagues yet</p>
             <p className="text-sm font-body">Create one, or join a friend's with their invite code.</p>
           </div>
@@ -388,8 +393,8 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
   return (
     <div className={`rounded-ticket border p-4 transition ${isFinished ? 'bg-pitch/5 border-pitch/20' : 'bg-white border-ink/10 hover:shadow-md'}`}>
       <div className="flex justify-between items-center mb-1">
-        <span className="text-[11px] font-score text-mist tracking-wide">GW{match.gameweek}</span>
-        <span className="text-[11px] font-score text-mist tracking-wide">
+        <span className="text-[11px] font-score text-ink/55 tracking-wide">GW{match.gameweek}</span>
+        <span className="text-[11px] font-score text-ink/55 tracking-wide">
           {new Date(match.kickoff_time).toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
@@ -399,7 +404,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
           <TeamBadge name={match.home_team} color={colorFor(match.home_team)} />
           <span className="font-display font-semibold text-ink text-sm truncate">{match.home_team}</span>
         </div>
-        <span className="text-mist text-xs font-score shrink-0">vs</span>
+        <span className="text-ink/55 text-xs font-score shrink-0">vs</span>
         <div className="flex items-center gap-2 min-w-0 justify-end">
           <span className="font-display font-semibold text-ink text-sm truncate text-right">{match.away_team}</span>
           <TeamBadge name={match.away_team} color={colorFor(match.away_team)} />
@@ -412,16 +417,16 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-2">
             <ScoreDigit value={match.home_goals} size="md" />
-            <span className="text-mist font-score">-</span>
+            <span className="text-ink/55 font-score">-</span>
             <ScoreDigit value={match.away_goals} size="md" />
             <span className="ml-2 text-[10px] font-display uppercase tracking-wider text-pitch font-bold">Full time</span>
           </div>
           {existingPrediction && (
             <div className="text-right">
-              <p className={`font-score text-xl font-bold ${existingPrediction.points_earned > 0 ? 'text-pitch' : 'text-mist'}`}>
+              <p className={`font-score text-xl font-bold ${existingPrediction.points_earned > 0 ? 'text-pitch' : 'text-ink/55'}`}>
                 {existingPrediction.points_earned > 0 ? `+${existingPrediction.points_earned}` : '0'}
               </p>
-              <p className="text-[10px] text-mist font-body">points earned</p>
+              <p className="text-[10px] text-ink/55 font-body">points earned</p>
             </div>
           )}
         </div>
@@ -440,13 +445,13 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
         <div className="flex justify-between items-center bg-pitch/5 rounded-lg px-3 py-2">
           <div className="flex items-center gap-3">
             <ScoreDigit value={home} size="sm" />
-            <span className="text-mist font-score">-</span>
+            <span className="text-ink/55 font-score">-</span>
             <ScoreDigit value={away} size="sm" />
             {x2 && <span className="text-flag font-display font-bold text-sm">×2</span>}
           </div>
           <div className="text-right">
-            <p className="text-[11px] text-mist font-body">{potentialBase * (x2 ? 2 : 1)}+ pts if correct</p>
-            <button onClick={() => setEditing(true)} className="text-pitch text-xs font-display uppercase font-bold tracking-wide hover:underline">
+            <PointsPill>{potentialBase * (x2 ? 2 : 1)}+ pts</PointsPill>
+            <button onClick={() => setEditing(true)} className="block mt-1 ml-auto text-pitch text-xs font-display uppercase font-bold tracking-wide border-2 border-pitch rounded-full px-3 py-0.5 hover:bg-pitch hover:text-white transition">
               Edit
             </button>
           </div>
@@ -456,7 +461,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex items-center gap-2">
               <ScoreDigit value={home} onChange={setHome} editable size="md" />
-              <span className="text-mist font-score font-bold">-</span>
+              <span className="text-ink/55 font-score font-bold">-</span>
               <ScoreDigit value={away} onChange={setAway} editable size="md" />
             </div>
 
@@ -472,15 +477,15 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
 
             <button
               type="submit" disabled={loading}
-              className="ml-auto bg-pitch text-white px-4 py-2.5 rounded-lg text-sm font-display uppercase font-bold tracking-wide hover:bg-pitch-light disabled:opacity-50"
+              className="ml-auto bg-pitch text-white px-4 py-2.5 rounded-lg text-sm font-display uppercase font-bold tracking-wide hover:bg-pitch-light disabled:opacity-50 border-2 border-ink"
             >
               {loading ? 'Saving…' : 'Fill coupon'}
             </button>
           </div>
 
           {predictedResult && (
-            <p className="text-xs text-mist font-body">
-              🎯 Potential <span className="font-score font-bold text-ink">{potentialBase * (x2 ? 2 : 1)} pts</span> for a correct result
+            <p className="text-xs text-ink/55 font-body flex items-center gap-2 flex-wrap">
+              🎯 Potential <PointsPill>{potentialBase * (x2 ? 2 : 1)} pts</PointsPill> for a correct result
               {home !== '' && away !== '' && <span> · more if the exact score lands</span>}
             </p>
           )}
@@ -495,7 +500,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, onSaved }) {
         </form>
       )}
 
-      <div className="mt-3 flex gap-4 text-[11px] font-score text-mist">
+      <div className="mt-3 flex gap-4 text-[11px] font-score text-ink/55">
         <span>1: {match.odds_home}</span>
         <span>X: {match.odds_draw}</span>
         <span>2: {match.odds_away}</span>
@@ -544,7 +549,7 @@ function LeagueDetailPage({ leagueId, onBack }) {
   return (
     <div className="min-h-screen bg-chalk p-4">
       <div className="max-w-6xl mx-auto">
-        <button onClick={onBack} className="mb-4 bg-white border-2 border-ink/10 text-ink px-4 py-2 rounded-lg hover:bg-ink/5 font-display uppercase text-sm font-bold tracking-wide">
+        <button onClick={onBack} className="mb-4 bg-white border-2 border-ink text-ink px-4 py-2 rounded-lg hover:bg-ink/5 font-display uppercase text-sm font-bold tracking-wide">
           ← Leagues
         </button>
 
@@ -557,15 +562,15 @@ function LeagueDetailPage({ leagueId, onBack }) {
                   <h2 className="font-display text-2xl font-bold text-ink uppercase">Gameweek {gameweek}</h2>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-ink/5 px-3 py-1.5 rounded-lg hover:bg-ink/10 font-display text-xs font-bold uppercase tracking-wide">← Prev</button>
-                  <button onClick={() => setGameweek((g) => g + 1)} className="bg-ink/5 px-3 py-1.5 rounded-lg hover:bg-ink/10 font-display text-xs font-bold uppercase tracking-wide">Next →</button>
+                  <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-ink/5 border-2 border-ink px-3 py-1.5 rounded-lg hover:bg-ink/10 font-display text-xs font-bold uppercase tracking-wide">← Prev</button>
+                  <button onClick={() => setGameweek((g) => g + 1)} className="bg-ink/5 border-2 border-ink px-3 py-1.5 rounded-lg hover:bg-ink/10 font-display text-xs font-bold uppercase tracking-wide">Next →</button>
                 </div>
               </div>
 
               {myTotalPotential > 0 && (
                 <div className="bg-floodlight/15 border-2 border-floodlight/40 rounded-lg px-4 py-3 mb-4">
-                  <p className="text-sm text-ink font-body">
-                    🎯 Live coupon worth up to <span className="font-score font-bold">{myTotalPotential} pts</span> this gameweek
+                  <p className="text-sm text-ink font-body flex items-center gap-2 flex-wrap">
+                    🎯 Live coupon worth up to <PointsPill>{myTotalPotential} pts</PointsPill> this gameweek
                   </p>
                 </div>
               )}
@@ -585,7 +590,7 @@ function LeagueDetailPage({ leagueId, onBack }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-mist text-center py-8 font-body">No matches scheduled for this gameweek yet.</p>
+                <p className="text-ink/55 text-center py-8 font-body">No matches scheduled for this gameweek yet.</p>
               )}
             </div>
           </div>
@@ -615,7 +620,7 @@ function LeagueDetailPage({ leagueId, onBack }) {
                 })}
               </div>
             ) : (
-              <p className="text-mist text-sm font-body">No points yet — be the first to score.</p>
+              <p className="text-ink/55 text-sm font-body">No points yet — be the first to score.</p>
             )}
           </div>
         </div>
@@ -634,26 +639,26 @@ function LeagueDetailPage({ leagueId, onBack }) {
                     <div className="flex justify-between items-start">
                       <div className="min-w-0">
                         <p className="font-display font-semibold text-ink text-sm truncate">{pred.home_team} vs {pred.away_team}</p>
-                        <p className="text-xs text-mist font-body">GW{pred.gameweek} · You: <span className="font-score">{pred.predicted_home_goals}-{pred.predicted_away_goals}</span></p>
+                        <p className="text-xs text-ink/55 font-body">GW{pred.gameweek} · You: <span className="font-score">{pred.predicted_home_goals}-{pred.predicted_away_goals}</span></p>
                         {pred.match_status === 'finished' && (
                           <p className="text-xs text-pitch font-score font-semibold">Actual: {pred.actual_home_goals}-{pred.actual_away_goals}</p>
                         )}
                       </div>
                       <div className="text-right shrink-0 ml-2">
                         {pred.match_status === 'finished' ? (
-                          <p className={`font-score text-xl font-bold ${pred.points_earned > 0 ? 'text-pitch' : 'text-mist'}`}>{pred.points_earned}</p>
+                          <p className={`font-score text-xl font-bold ${pred.points_earned > 0 ? 'text-pitch' : 'text-ink/55'}`}>{pred.points_earned}</p>
                         ) : (
-                          <p className="font-score text-xl font-bold text-flag">
-                            {(pred.potential_base_points || 0) * (pred.x2_multiplier || 1)}<span className="text-xs text-mist">*</span>
-                          </p>
+                          <PointsPill>
+                            {(pred.potential_base_points || 0) * (pred.x2_multiplier || 1)}<span className="text-[10px]">*</span>
+                          </PointsPill>
                         )}
-                        <p className="text-[10px] text-mist font-body">{pred.match_status === 'finished' ? 'earned' : 'potential'}</p>
+                        <p className="text-[10px] text-ink/55 font-body">{pred.match_status === 'finished' ? 'earned' : 'potential'}</p>
                       </div>
                     </div>
 
                     {pred.match_status === 'finished' && pred.points_earned > 0 && (
                       <div className="bg-white rounded-lg p-2 text-xs space-y-0.5 border-t border-ink/10 mt-2 font-body">
-                        <div className="flex justify-between"><span className="text-mist">Base (correct result)</span><span className="font-score font-semibold">{pred.base_points}</span></div>
+                        <div className="flex justify-between"><span className="text-ink/55">Base (correct result)</span><span className="font-score font-semibold">{pred.base_points}</span></div>
                         {pred.is_exact_match && (
                           <div className="flex justify-between text-floodlight-dark"><span>+ Exact score bonus</span><span className="font-score font-semibold">+{pred.exact_bonus}</span></div>
                         )}
@@ -668,15 +673,15 @@ function LeagueDetailPage({ leagueId, onBack }) {
                       {pred.x2_applied && <span className="bg-flag/10 text-flag text-[10px] px-2 py-0.5 rounded-full font-display font-bold uppercase">×2</span>}
                       {pred.match_status === 'finished'
                         ? <span className="bg-pitch/10 text-pitch text-[10px] px-2 py-0.5 rounded-full font-display font-bold uppercase">Finished</span>
-                        : <span className="bg-ink/5 text-mist text-[10px] px-2 py-0.5 rounded-full font-display font-bold uppercase">Upcoming</span>}
+                        : <span className="bg-ink/5 text-ink/55 text-[10px] px-2 py-0.5 rounded-full font-display font-bold uppercase">Upcoming</span>}
                     </div>
                   </div>
                 ))}
             </div>
           ) : (
-            <p className="text-mist text-sm font-body">No predictions yet. Fill in a score above to see it here.</p>
+            <p className="text-ink/55 text-sm font-body">No predictions yet. Fill in a score above to see it here.</p>
           )}
-          <p className="text-[11px] text-mist mt-3 font-body">* Assumes a correct result; an exact-score bonus may add more.</p>
+          <p className="text-[11px] text-ink/55 mt-3 font-body">* Assumes a correct result; an exact-score bonus may add more.</p>
         </div>
       </div>
     </div>
@@ -750,7 +755,7 @@ function AdminPage({ onBack }) {
   return (
     <div className="min-h-screen bg-chalk p-4">
       <div className="max-w-5xl mx-auto">
-        <button onClick={onBack} className="mb-4 bg-white border-2 border-ink/10 text-ink px-4 py-2 rounded-lg hover:bg-ink/5 font-display uppercase text-sm font-bold tracking-wide">
+        <button onClick={onBack} className="mb-4 bg-white border-2 border-ink text-ink px-4 py-2 rounded-lg hover:bg-ink/5 font-display uppercase text-sm font-bold tracking-wide">
           ← Back
         </button>
 
@@ -764,7 +769,7 @@ function AdminPage({ onBack }) {
                 key={key}
                 onClick={() => { setTab(key); setMessage(null); }}
                 className={`px-4 py-2 font-display uppercase text-xs font-bold tracking-wide border-b-2 -mb-0.5 transition ${
-                  tab === key ? 'text-flag border-flag' : 'text-mist border-transparent hover:text-ink'
+                  tab === key ? 'text-flag border-flag' : 'text-ink/55 border-transparent hover:text-ink'
                 }`}
               >
                 {label}
@@ -781,9 +786,9 @@ function AdminPage({ onBack }) {
           {tab === 'matches' && (
             <div>
               <div className="flex gap-2 items-center mb-6">
-                <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-ink/5 px-3 py-1.5 rounded-lg font-display text-xs font-bold uppercase hover:bg-ink/10">← Prev</button>
-                <span className="px-4 py-1.5 bg-floodlight/20 rounded-lg font-score font-bold text-ink text-sm">GW {gameweek}</span>
-                <button onClick={() => setGameweek((g) => g + 1)} className="bg-ink/5 px-3 py-1.5 rounded-lg font-display text-xs font-bold uppercase hover:bg-ink/10">Next →</button>
+                <button onClick={() => setGameweek((g) => Math.max(1, g - 1))} className="bg-ink/5 border-2 border-ink px-3 py-1.5 rounded-lg font-display text-xs font-bold uppercase hover:bg-ink/10">← Prev</button>
+                <span className="px-4 py-1.5 bg-floodlight/20 border-2 border-floodlight rounded-lg font-score font-bold text-ink text-sm">GW {gameweek}</span>
+                <button onClick={() => setGameweek((g) => g + 1)} className="bg-ink/5 border-2 border-ink px-3 py-1.5 rounded-lg font-display text-xs font-bold uppercase hover:bg-ink/10">Next →</button>
               </div>
 
               {matchesLoading ? (
@@ -802,11 +807,11 @@ function AdminPage({ onBack }) {
                               <p className="font-display font-semibold text-ink text-sm">{match.home_team} vs {match.away_team}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <ScoreDigit value={match.home_goals} size="sm" />
-                                <span className="text-mist font-score">-</span>
+                                <span className="text-ink/55 font-score">-</span>
                                 <ScoreDigit value={match.away_goals} size="sm" />
                               </div>
                             </div>
-                            <button onClick={() => handleReset(match)} className="bg-flag text-white px-4 py-2 rounded-lg font-display uppercase text-xs font-bold tracking-wide hover:bg-flag/90">
+                            <button onClick={() => handleReset(match)} className="bg-flag text-white px-4 py-2 rounded-lg font-display uppercase text-xs font-bold tracking-wide hover:bg-flag/90 border-2 border-ink">
                               ↶ Reset
                             </button>
                           </div>
@@ -817,7 +822,7 @@ function AdminPage({ onBack }) {
 
                   <h2 className="font-display text-sm font-bold uppercase mb-3 text-ink tracking-wide">Upcoming ({upcoming.length})</h2>
                   <div className="space-y-2 mb-6">
-                    {upcoming.length === 0 && <p className="text-mist text-sm font-body">No upcoming matches this gameweek.</p>}
+                    {upcoming.length === 0 && <p className="text-ink/55 text-sm font-body">No upcoming matches this gameweek.</p>}
                     {upcoming.map((match) => (
                       <div
                         key={match.id} onClick={() => setSelectedMatch(match)}
@@ -827,7 +832,7 @@ function AdminPage({ onBack }) {
                       >
                         <div className="flex justify-between">
                           <span className="font-body font-semibold text-sm">{match.home_team} vs {match.away_team}</span>
-                          <span className="text-xs text-mist font-score">{new Date(match.kickoff_time).toLocaleString()}</span>
+                          <span className="text-xs text-ink/55 font-score">{new Date(match.kickoff_time).toLocaleString()}</span>
                         </div>
                       </div>
                     ))}
@@ -838,12 +843,12 @@ function AdminPage({ onBack }) {
                       <h3 className="font-display font-bold uppercase mb-4 text-sm">Set result: {selectedMatch.home_team} vs {selectedMatch.away_team}</h3>
                       <form onSubmit={handleSetResult} className="flex flex-wrap gap-4 items-center">
                         <ScoreDigit value={homeGoals} onChange={setHomeGoals} editable size="lg" />
-                        <span className="font-score text-xl font-bold text-mist">-</span>
+                        <span className="font-score text-xl font-bold text-ink/55">-</span>
                         <ScoreDigit value={awayGoals} onChange={setAwayGoals} editable size="lg" />
-                        <button type="submit" disabled={loading} className="bg-pitch text-white px-6 py-3 rounded-lg font-display uppercase text-sm font-bold tracking-wide hover:bg-pitch-light disabled:opacity-50">
+                        <button type="submit" disabled={loading} className="bg-pitch text-white px-6 py-3 rounded-lg font-display uppercase text-sm font-bold tracking-wide hover:bg-pitch-light disabled:opacity-50 border-2 border-ink">
                           {loading ? 'Setting…' : 'Set result'}
                         </button>
-                        <button type="button" onClick={() => setSelectedMatch(null)} className="text-mist text-sm hover:underline font-body">
+                        <button type="button" onClick={() => setSelectedMatch(null)} className="text-ink/55 text-sm hover:underline font-body border-2 border-mist rounded-lg px-4 py-3 hover:bg-mist/10">
                           Cancel
                         </button>
                       </form>
@@ -870,22 +875,22 @@ function AdminPage({ onBack }) {
                           <div className="flex justify-between items-start mb-2">
                             <div className="min-w-0">
                               <h3 className="font-display font-semibold text-ink truncate">{league.name}</h3>
-                              <p className="text-xs text-mist font-score">{league.invite_code}</p>
-                              <p className="text-xs text-mist font-body">by {league.creator}</p>
+                              <p className="text-xs text-ink/55 font-score">{league.invite_code}</p>
+                              <p className="text-xs text-ink/55 font-body">by {league.creator}</p>
                             </div>
                             <ScoreDigit value={league.members} size="sm" />
                           </div>
                           <div className="flex gap-1 flex-wrap text-xs mb-3">
                             <span className="bg-pitch/10 text-pitch px-2 py-0.5 rounded-full font-body">{league.predictions} predictions</span>
                           </div>
-                          <button onClick={() => handleDeleteLeague(league.id, league.name)} className="w-full bg-flag text-white px-3 py-2 rounded-lg hover:bg-flag/90 font-display uppercase text-xs font-bold tracking-wide">
+                          <button onClick={() => handleDeleteLeague(league.id, league.name)} className="w-full bg-flag text-white px-3 py-2 rounded-lg hover:bg-flag/90 font-display uppercase text-xs font-bold tracking-wide border-2 border-ink">
                             🗑️ Delete league
                           </button>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-mist text-sm font-body">No leagues found.</p>
+                    <p className="text-ink/55 text-sm font-body">No leagues found.</p>
                   )}
                 </>
               )}
@@ -932,11 +937,9 @@ function AppShell() {
           <div className="flex items-center gap-3">
             <span className="text-sm font-body font-semibold hidden sm:block">{user.username}</span>
             {user.username === 'admin' && (
-              <button onClick={() => setSelectedLeague('admin')} className="bg-floodlight text-ink px-3 py-1.5 rounded-lg hover:opacity-90 text-xs font-display font-bold uppercase tracking-wide">
-                Admin
-              </button>
+              <button onClick={() => setSelectedLeague('admin')} className="bg-floodlight text-chalk px-3 py-1.5 rounded-lg hover:opacity-90 text-xs font-display font-bold uppercase tracking-wide border-2 border-ink">Admin</button>
             )}
-            <button onClick={handleLogout} className="bg-flag px-3 py-1.5 rounded-lg hover:bg-flag/90 text-xs font-display font-bold uppercase tracking-wide">
+            <button onClick={handleLogout} className="bg-flag px-3 py-1.5 rounded-lg hover:bg-flag/90 text-xs font-display font-bold uppercase tracking-wide border-2 border-ink">
               Log out
             </button>
           </div>

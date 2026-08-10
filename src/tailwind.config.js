@@ -5,14 +5,14 @@ export default {
     extend: {
       colors: {
         pitch: {
-          DEFAULT: '#0B3D2E',
-          light: '#124B39',
+          DEFAULT: '#010A10', // Rich Black
+          light: '#211D21',   // Aurora Black
         },
-        chalk: '#F5F3EC',
-        flag: '#D2232A',
-        floodlight: '#F2B705',
-        ink: '#101820',
-        mist: '#7C8B85',
+        chalk: '#FFFBF2',      // Aesthetic White
+        flag: '#C10206',       // Guardsman Red
+        floodlight: '#A50113', // Madder
+        ink: '#010A10',        // Rich Black
+        mist: '#DFE2DB',       // Pale Powder
       },
       fontFamily: {
         display: ['Oswald', 'sans-serif'],
