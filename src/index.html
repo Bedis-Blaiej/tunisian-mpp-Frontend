@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0c0d10" />
+  <title>Pronos Tunisie — Jeu de prédictions</title>
+
+
+  <!-- Font Awesome icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+  
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- HEADER / MAIN NAVIGATION -->
+    <header class="topbar">
+      <a class="brand" href="#" data-page="predictions">
+        <img src="assets/logo-transparent.png" alt="Pronos Tunisie">
+        <span class="brand-copy">
+          <strong>PRONOS <em>TUNISIE</em></strong>
+          <small>Le jeu de prédictions 100% tunisien</small>
+        </span>
+      </a>
+
+      <nav class="main-nav" aria-label="Navigation principale">
+        <button class="nav-item active" data-page="predictions">
+          <i class="fa-solid fa-bullseye"></i><span>Mes pronos</span>
+        </button>
+        <button class="nav-item" data-page="results">
+          <i class="fa-solid fa-flag-checkered"></i><span>Résultats</span>
+        </button>
+        <button class="nav-item" data-page="standings">
+          <i class="fa-solid fa-ranking-star"></i><span>Classements</span>
+        </button>
+        <button class="nav-item" data-page="leagues">
+          <i class="fa-solid fa-users"></i><span>Mes ligues</span>
+        </button>
+        <button class="nav-item" data-page="profile">
+          <i class="fa-solid fa-user"></i><span>Profil</span>
+        </button>
+      </nav>
+
+      <button class="profile-mini" data-page="profile" aria-label="Ouvrir le profil">
+        <span class="avatar">BB</span>
+        <span class="online-dot"></span>
+      </button>
+    </header>
+
+    <main>
+
+      <!-- 1. MES PRONOS -->
+      <section class="page active" id="predictions">
+        <div class="hero-row">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-fire"></i> Journée 4 · Ligue 1</p>
+            <h1>À toi de jouer.</h1>
+            <p class="page-intro">Prédisez les scores, cumulez des points et grimpez au classement.</p>
+          </div>
+          <div class="round-selector">
+            <button class="round-arrow"><i class="fa-solid fa-chevron-left"></i></button>
+            <div><small>Journée</small><strong>04</strong></div>
+            <button class="round-arrow"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+
+        <div class="stat-strip">
+          <div class="mini-stat">
+            <span class="stat-icon"><i class="fa-solid fa-trophy"></i></span>
+            <div><small>Mon score</small><strong>42 pts</strong></div>
+          </div>
+          <div class="mini-stat">
+            <span class="stat-icon"><i class="fa-solid fa-chart-line"></i></span>
+            <div><small>Cette journée</small><strong>+12 pts</strong></div>
+          </div>
+          <div class="mini-stat">
+            <span class="stat-icon"><i class="fa-solid fa-clock"></i></span>
+            <div><small>Pronostics ouverts</small><strong>6 matchs</strong></div>
+          </div>
+          <div class="round-progress">
+            <div class="progress-label"><span>Progression</span><b>4 / 7</b></div>
+            <div class="progress"><span style="width:57%"></span></div>
+          </div>
+        </div>
+
+        <div class="section-heading">
+          <div><h2>Les matchs à pronostiquer</h2><span>Un score exact rapporte plus de points.</span></div>
+          <span class="deadline"><i class="fa-regular fa-clock"></i> Dernier délai : 19:00</span>
+        </div>
+
+        <div class="matches-grid">
+          <article class="match-card featured">
+            <div class="match-meta"><span>Vendredi · 19:00</span><span class="league-tag">Ligue 1</span></div>
+            <div class="teams">
+              <div class="team"><div class="team-logo red">EST</div><strong>Espérance</strong><small>Tunis</small></div>
+              <div class="prediction-box">
+                <label>Ton score</label>
+                <div class="score-inputs">
+                  <input type="number" min="0" max="20" value="" placeholder="0">
+                  <span>–</span>
+                  <input type="number" min="0" max="20" value="" placeholder="0">
+                </div>
+              </div>
+              <div class="team"><div class="team-logo gold">CAB</div><strong>Bizerte</strong><small>Club Athlétique</small></div>
+            </div>
+            <div class="points-rule"><i class="fa-solid fa-star"></i> Exact : <b>5 pts</b> · Issue correcte : <b>2 pts</b></div>
+          </article>
+
+          <article class="match-card">
+            <div class="match-meta"><span>Samedi · 16:30</span><span class="league-tag">Ligue 1</span></div>
+            <div class="teams">
+              <div class="team"><div class="team-logo blue">CA</div><strong>Club Africain</strong><small>Tunis</small></div>
+              <div class="prediction-box">
+                <label>Ton score</label>
+                <div class="score-inputs"><input type="number" placeholder="0"><span>–</span><input type="number" placeholder="0"></div>
+              </div>
+              <div class="team"><div class="team-logo white">USM</div><strong>US Monastir</strong><small>Monastir</small></div>
+            </div>
+            <div class="points-rule"><i class="fa-solid fa-star"></i> Exact : <b>5 pts</b> · Issue correcte : <b>2 pts</b></div>
+          </article>
+
+          <article class="match-card">
+            <div class="match-meta"><span>Samedi · 17:00</span><span class="league-tag">Ligue 1</span></div>
+            <div class="teams">
+              <div class="team"><div class="team-logo orange">CSS</div><strong>CS Sfaxien</strong><small>Sfax</small></div>
+              <div class="prediction-box">
+                <label>Ton score</label>
+                <div class="score-inputs"><input type="number" placeholder="0"><span>–</span><input type="number" placeholder="0"></div>
+              </div>
+              <div class="team"><div class="team-logo green">ST</div><strong>Stade Tunisien</strong><small>Bardo</small></div>
+            </div>
+            <div class="points-rule"><i class="fa-solid fa-star"></i> Exact : <b>5 pts</b> · Issue correcte : <b>2 pts</b></div>
+          </article>
+
+          <article class="match-card">
+            <div class="match-meta"><span>Samedi · 19:30</span><span class="league-tag">Ligue 1</span></div>
+            <div class="teams">
+              <div class="team"><div class="team-logo navy">ESS</div><strong>Étoile du Sahel</strong><small>Sousse</small></div>
+              <div class="prediction-box">
+                <label>Ton score</label>
+                <div class="score-inputs"><input type="number" placeholder="0"><span>–</span><input type="number" placeholder="0"></div>
+              </div>
+              <div class="team"><div class="team-logo purple">OB</div><strong>Olympique Béja</strong><small>Béja</small></div>
+            </div>
+            <div class="points-rule"><i class="fa-solid fa-star"></i> Exact : <b>5 pts</b> · Issue correcte : <b>2 pts</b></div>
+          </article>
+        </div>
+
+        <div class="save-bar">
+          <div><i class="fa-solid fa-circle-info"></i><span>Tu peux modifier tes pronostics jusqu'au coup d'envoi.</span></div>
+          <button class="primary-btn" id="savePredictions"><i class="fa-solid fa-check"></i> Enregistrer mes pronos</button>
+        </div>
+      </section>
+
+      <!-- 2. RESULTS -->
+      <section class="page" id="results">
+        <div class="hero-row compact">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-flag-checkered"></i> Historique</p>
+            <h1>Les résultats.</h1>
+            <p class="page-intro">Retrouve les scores officiels et découvre tes performances.</p>
+          </div>
+          <div class="filter-pills"><button class="pill active">Tout</button><button class="pill">Mes pronos</button></div>
+        </div>
+
+        <div class="result-day">
+          <div class="day-heading"><div><b>Aujourd'hui</b><span>Dimanche 23 août</span></div><span class="day-score">+7 pts</span></div>
+          <div class="result-list">
+            <div class="result-row">
+              <span class="result-time">14:00</span>
+              <div class="result-team"><b>AS Soliman</b><small>Soliman</small></div>
+              <strong class="final-score">1 — 1</strong>
+              <div class="result-team away"><b>US Tataouine</b><small>Tataouine</small></div>
+              <span class="prediction-result correct"><i class="fa-solid fa-check"></i> +2</span>
+            </div>
+            <div class="result-row">
+              <span class="result-time">16:30</span>
+              <div class="result-team"><b>Jeunesse Kairouanaise</b><small>Kairouan</small></div>
+              <strong class="final-score">0 — 2</strong>
+              <div class="result-team away"><b>CA Bizertin</b><small>Bizerte</small></div>
+              <span class="prediction-result exact"><i class="fa-solid fa-bullseye"></i> +5</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-day">
+          <div class="day-heading"><div><b>Samedi 22 août</b><span>2 matchs terminés</span></div><span class="day-score muted">0 pt</span></div>
+          <div class="result-list">
+            <div class="result-row">
+              <span class="result-time">17:00</span>
+              <div class="result-team"><b>CS Sfaxien</b><small>Sfax</small></div>
+              <strong class="final-score">2 — 0</strong>
+              <div class="result-team away"><b>Stade Tunisien</b><small>Bardo</small></div>
+              <span class="prediction-result miss"><i class="fa-solid fa-xmark"></i> 0</span>
+            </div>
+            <div class="result-row">
+              <span class="result-time">19:30</span>
+              <div class="result-team"><b>Étoile du Sahel</b><small>Sousse</small></div>
+              <strong class="final-score">1 — 0</strong>
+              <div class="result-team away"><b>Olympique Béja</b><small>Béja</small></div>
+              <span class="prediction-result correct"><i class="fa-solid fa-check"></i> +2</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. STANDINGS -->
+      <section class="page" id="standings">
+        <div class="hero-row compact">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-ranking-star"></i> Compétition</p>
+            <h1>Classements.</h1>
+            <p class="page-intro">Compare ta progression avec les meilleurs pronostiqueurs.</p>
+          </div>
+          <select class="dark-select"><option>Classement général</option><option>Cette journée</option><option>Ce mois</option></select>
+        </div>
+
+        <div class="leader-card">
+          <div class="leader-position">1</div>
+          <div class="leader-avatar">AM</div>
+          <div class="leader-info"><b>Amine M.</b><span>Champion actuel</span></div>
+          <div class="leader-score"><strong>126</strong><span>points</span></div>
+          <div class="leader-medal">🏆</div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-head"><span>Rang</span><span>Joueur</span><span>Pronos</span><span>Exact</span><span>Points</span></div>
+          <div class="standing-row current"><span class="rank">12</span><div class="player-cell"><span class="avatar small">BB</span><b>Bedis B.</b><em>Moi</em></div><span>28</span><span>8</span><strong>42</strong></div>
+          <div class="standing-row"><span class="rank">2</span><div class="player-cell"><span class="avatar small">SK</span><b>Seif K.</b></div><span>31</span><span>14</span><strong>118</strong></div>
+          <div class="standing-row"><span class="rank">3</span><div class="player-cell"><span class="avatar small">YA</span><b>Yassine A.</b></div><span>31</span><span>13</span><strong>114</strong></div>
+          <div class="standing-row"><span class="rank">4</span><div class="player-cell"><span class="avatar small">MH</span><b>Mohamed H.</b></div><span>30</span><span>12</span><strong>109</strong></div>
+          <div class="standing-row"><span class="rank">5</span><div class="player-cell"><span class="avatar small">IS</span><b>Inès S.</b></div><span>29</span><span>11</span><strong>104</strong></div>
+        </div>
+      </section>
+
+      <!-- 4. MY LEAGUES -->
+      <section class="page" id="leagues">
+        <div class="hero-row compact">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-users"></i> Communauté</p>
+            <h1>Mes ligues.</h1>
+            <p class="page-intro">Crée une ligue privée ou rejoins celle de tes amis.</p>
+          </div>
+          <button class="primary-btn" id="createLeague"><i class="fa-solid fa-plus"></i> Créer une ligue</button>
+        </div>
+
+        <div class="join-box">
+          <div class="join-icon"><i class="fa-solid fa-ticket"></i></div>
+          <div><h3>Tu as un code d'invitation ?</h3><p>Entre le code reçu pour rejoindre une ligue privée.</p></div>
+          <div class="join-input"><input id="leagueCode" placeholder="Ex. TN-7K2M"><button class="secondary-btn" id="joinLeague">Rejoindre</button></div>
+        </div>
+
+        <div class="section-heading"><div><h2>Mes ligues actives</h2><span>3 compétitions auxquelles tu participes</span></div></div>
+        <div class="league-grid">
+          <article class="league-card">
+            <div class="league-cover red-cover"><span>🏆</span></div>
+            <div class="league-body"><div class="league-title"><h3>Les Potos FC</h3><span class="private">Privée</span></div><p>12 membres · Créée par Amine</p><div class="league-bottom"><b>4e <small>sur 12</small></b><button class="icon-btn"><i class="fa-solid fa-arrow-right"></i></button></div></div>
+          </article>
+          <article class="league-card">
+            <div class="league-cover gold-cover"><span>⚽</span></div>
+            <div class="league-body"><div class="league-title"><h3>Famille Blaiej</h3><span class="private">Privée</span></div><p>8 membres · Créée par Bedis</p><div class="league-bottom"><b>2e <small>sur 8</small></b><button class="icon-btn"><i class="fa-solid fa-arrow-right"></i></button></div></div>
+          </article>
+          <article class="league-card">
+            <div class="league-cover dark-cover"><span>🇹🇳</span></div>
+            <div class="league-body"><div class="league-title"><h3>Pronos Tunisie</h3><span class="public">Publique</span></div><p>1 284 membres · Ligue nationale</p><div class="league-bottom"><b>86e <small>sur 1 284</small></b><button class="icon-btn"><i class="fa-solid fa-arrow-right"></i></button></div></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- 5. PROFILE -->
+      <section class="page" id="profile">
+        <div class="hero-row compact">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-user"></i> Mon espace</p>
+            <h1>Mon profil.</h1>
+            <p class="page-intro">Ton historique, tes performances et ton évolution.</p>
+          </div>
+          <button class="secondary-btn"><i class="fa-solid fa-pen"></i> Modifier</button>
+        </div>
+
+        <div class="profile-layout">
+          <article class="profile-card">
+            <div class="profile-avatar">BB</div>
+            <h2>Bedis Blaiej</h2>
+            <span class="username">@bedis</span>
+            <div class="profile-divider"></div>
+            <div class="profile-meta"><span><i class="fa-solid fa-calendar"></i> Membre depuis</span><b>Août 2026</b></div>
+            <div class="profile-meta"><span><i class="fa-solid fa-users"></i> Ligues</span><b>3</b></div>
+          </article>
+
+          <div class="profile-stats">
+            <div class="stat-card"><span><i class="fa-solid fa-bullseye"></i></span><div><small>Pronostics</small><strong>28</strong></div></div>
+            <div class="stat-card"><span><i class="fa-solid fa-circle-check"></i></span><div><small>Corrects</small><strong>19</strong></div></div>
+            <div class="stat-card"><span><i class="fa-solid fa-crosshairs"></i></span><div><small>Scores exacts</small><strong>8</strong></div></div>
+            <div class="stat-card"><span><i class="fa-solid fa-star"></i></span><div><small>Total points</small><strong>42</strong></div></div>
+          </div>
+
+          <article class="performance-card">
+            <div class="card-title"><div><h3>Performance</h3><span>Sur tes 28 derniers pronostics</span></div><b>67.9%</b></div>
+            <div class="performance-bar"><span style="width:68%"></span></div>
+            <div class="performance-legend"><span><i class="dot exact-dot"></i> Score exact <b>8</b></span><span><i class="dot correct-dot"></i> Issue correcte <b>11</b></span><span><i class="dot miss-dot"></i> Faux <b>9</b></span></div>
+          </article>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <div><b>PRONOS TUNISIE</b><span>Le terrain des pronostiqueurs tunisiens.</span></div>
+      <span>© 2026 Pronos Tunisie</span>
+    </footer>
+
+    <!-- Mobile bottom navigation -->
+    <nav class="mobile-nav">
+      <button class="nav-item active" data-page="predictions"><i class="fa-solid fa-bullseye"></i><span>Pronos</span></button>
+      <button class="nav-item" data-page="results"><i class="fa-solid fa-flag-checkered"></i><span>Résultats</span></button>
+      <button class="nav-item" data-page="standings"><i class="fa-solid fa-ranking-star"></i><span>Classement</span></button>
+      <button class="nav-item" data-page="leagues"><i class="fa-solid fa-users"></i><span>Ligues</span></button>
+      <button class="nav-item" data-page="profile"><i class="fa-solid fa-user"></i><span>Profil</span></button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span></span></div>
+  <script src="app.js"></script>
+</body>
+</html>
