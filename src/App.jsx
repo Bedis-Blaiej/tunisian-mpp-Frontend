@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef, useContext, createContext } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import logo from './assets/logo.png';
+import logo from 'frontend/src/assets/logo.png';
 import './styles.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
