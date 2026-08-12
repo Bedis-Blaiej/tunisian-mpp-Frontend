@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef, useContext, createContext } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import logo from 'frontend/src/assets/logo.png';
+import logo from './assets/logo.png';
 import './styles.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -210,7 +210,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
         predicted_home_goals: parseInt(nextHome),
         predicted_away_goals: parseInt(nextAway),
         x2_apply: nextX2,
-      }, { params: { league_id: leagueId } });
+      });
       lastSaved.current = key;
       setStatus('ok');
       onSaved && onSaved();
@@ -320,24 +320,21 @@ function PredictionsPage({ league, user }) {
     queryFn: async () => (await api.get('/matches', { params: { gameweek } })).data,
   });
 
+  // Predictions and X2 status are account-wide now, not tied to a league.
   const { data: predictions, refetch: refetchPredictions } = useQuery({
-    queryKey: ['predictions', league?.id],
+    queryKey: ['predictions'],
     queryFn: async () => {
-      if (!league) return [];
-      try { return (await api.get('/user/predictions', { params: { league_id: league.id } })).data; }
+      try { return (await api.get('/user/predictions')).data; }
       catch { return []; }
     },
-    enabled: !!league,
   });
 
   const { data: x2Status, refetch: refetchX2 } = useQuery({
-    queryKey: ['x2-status', league?.id, gameweek],
+    queryKey: ['x2-status', gameweek],
     queryFn: async () => {
-      if (!league) return { x2_used: false };
-      try { return (await api.get(`/predictions/x2-status/${gameweek}`, { params: { league_id: league.id } })).data; }
+      try { return (await api.get(`/predictions/x2-status/${gameweek}`)).data; }
       catch { return { x2_used: false }; }
     },
-    enabled: !!league,
   });
 
   const { data: standings } = useQuery({
@@ -359,11 +356,7 @@ function PredictionsPage({ league, user }) {
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   if (!league) {
-    return (
-      <div className="empty-state">
-        <p>Choisis d'abord une ligue dans <b>Mes ligues</b> pour voir les matchs à pronostiquer.</p>
-      </div>
-    );
+    return <StateBox loading loadingLabel="Préparation de ta ligue…" />;
   }
 
   return (
@@ -439,13 +432,11 @@ function ResultsPage({ league }) {
   });
 
   const { data: predictions } = useQuery({
-    queryKey: ['predictions', league?.id],
+    queryKey: ['predictions'],
     queryFn: async () => {
-      if (!league) return [];
-      try { return (await api.get('/user/predictions', { params: { league_id: league.id } })).data; }
+      try { return (await api.get('/user/predictions')).data; }
       catch { return []; }
     },
-    enabled: !!league,
   });
 
   const findPrediction = (matchId) => predictions?.find((p) => p.match_id === matchId);
@@ -471,7 +462,7 @@ function ResultsPage({ league }) {
         </div>
         <div className="filter-pills">
           <button className={`pill${filter === 'all' ? ' active' : ''}`} onClick={() => setFilter('all')}>Tout</button>
-          <button className={`pill${filter === 'mine' ? ' active' : ''}`} onClick={() => setFilter('mine')} disabled={!league}>Mes pronos</button>
+          <button className={`pill${filter === 'mine' ? ' active' : ''}`} onClick={() => setFilter('mine')}>Mes pronos</button>
         </div>
       </div>
 
@@ -531,7 +522,7 @@ function StandingsPage({ league, user }) {
   });
 
   if (!league) {
-    return <div className="empty-state">Choisis une ligue dans <b>Mes ligues</b> pour voir son classement.</div>;
+    return <StateBox loading loadingLabel="Préparation de ta ligue…" />;
   }
 
   const leader = standings?.[0];
@@ -595,14 +586,20 @@ function LeagueCard({ league, user, onOpen }) {
   });
   const idx = standings?.findIndex((s) => s.user_id === user.id);
   const rankLabel = standings && idx !== undefined && idx >= 0 ? `${idx + 1}e` : '—';
-  const cover = ['red-cover', 'gold-cover', 'dark-cover'][Math.abs(league.name.charCodeAt(0)) % 3];
-  const emoji = ['🏆', '⚽', '🇹🇳'][Math.abs(league.name.charCodeAt(0)) % 3];
+  const isOfficial = league.name === 'Tunisian League';
+  const cover = isOfficial ? 'dark-cover' : ['red-cover', 'gold-cover'][Math.abs(league.name.charCodeAt(0)) % 2];
+  const emoji = isOfficial ? '🇹🇳' : ['🏆', '⚽'][Math.abs(league.name.charCodeAt(0)) % 2];
 
   return (
     <article className="league-card">
       <div className={`league-cover ${cover}`}><span>{emoji}</span></div>
       <div className="league-body">
-        <div className="league-title"><h3>{league.name}</h3><span className="private">Privée · {league.invite_code}</span></div>
+        <div className="league-title">
+          <h3>{league.name}</h3>
+          {isOfficial
+            ? <span className="public">Officielle</span>
+            : <span className="private">Privée · {league.invite_code}</span>}
+        </div>
         <p>{league.member_count ?? '?'} membre(s)</p>
         <div className="league-bottom">
           <b>{rankLabel} <small>sur {standings?.length ?? '?'}</small></b>
@@ -707,7 +704,7 @@ function ProfilePage({ user }) {
       const allPreds = [];
       for (const league of leagues) {
         try {
-          const preds = (await api.get('/user/predictions', { params: { league_id: league.id } })).data;
+          const preds = (await api.get('/user/predictions')).data;
           allPreds.push(...preds);
         } catch { /* skip */ }
       }
@@ -938,6 +935,20 @@ function AppShell() {
     if (stored) { try { setUser(JSON.parse(stored)); } catch { /* ignore */ } }
   }, []);
 
+  // Every account is auto-enrolled in the "Tunisian League" on the backend,
+  // so pick it as the active league right after login — Mes pronos works
+  // immediately, no need to create or join anything first.
+  useEffect(() => {
+    if (!user || league) return;
+    let cancelled = false;
+    api.get('/user/leagues').then((res) => {
+      if (cancelled) return;
+      const tunisian = res.data.find((l) => l.name === 'Tunisian League');
+      setLeague(tunisian || res.data[0] || null);
+    }).catch(() => { /* will retry once user opens Mes ligues */ });
+    return () => { cancelled = true; };
+  }, [user, league]);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -974,10 +985,15 @@ function AppShell() {
           )}
         </nav>
 
-        <button className="profile-mini" onClick={handleLogout} aria-label="Se déconnecter" title="Se déconnecter">
-          <span className="avatar">{initials(user.username)}</span>
-          <span className="online-dot" />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button className="profile-mini" onClick={() => setTab('profile')} aria-label="Mon profil" title="Mon profil">
+            <span className="avatar">{initials(user.username)}</span>
+            <span className="online-dot" />
+          </button>
+          <button className="logout-btn" onClick={handleLogout} aria-label="Se déconnecter" title="Se déconnecter">
+            <i className="fa-solid fa-right-from-bracket" />
+          </button>
+        </div>
       </header>
 
       <main>

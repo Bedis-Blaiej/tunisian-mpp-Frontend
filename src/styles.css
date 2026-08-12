@@ -380,3 +380,14 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
 .create-box input { flex: 1; color: white; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 11px; font-size: 11px; }
 
 .link-btn { background: none; border: 0; color: var(--red-bright); font-weight: 800; font-size: 11px; padding: 0; }
+
+/* Logout — always visible (unlike .profile-mini, which the mock hides on
+   mobile), since there needs to be a reachable way to log out on every
+   screen size. */
+.logout-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--muted);
+  flex-shrink: 0;
+}
+.logout-btn:hover { color: var(--red-bright); border-color: rgba(215,25,32,.4); }
