@@ -772,6 +772,79 @@ function ProfilePage({ user }) {
   );
 }
 
+// ============ RÈGLES DU JEU ============
+function RulesPage() {
+  return (
+    <section className="page active">
+      <div className="hero-row compact">
+        <div>
+          <p className="eyebrow"><i className="fa-solid fa-book" /> À lire avant de jouer</p>
+          <h1>Règles du jeu.</h1>
+          <p className="page-intro">Comment gagner des points, en 6 idées simples.</p>
+        </div>
+      </div>
+
+      <div className="rules-grid">
+        <div className="rule-card">
+          <div className="rule-icon"><i className="fa-solid fa-pen" /></div>
+          <h3>1. Pronostique un score</h3>
+          <p>Avant chaque match, entre le score exact que tu imagines pour les deux équipes. Un pronostic par match.</p>
+        </div>
+
+        <div className="rule-card">
+          <div className="rule-icon"><i className="fa-solid fa-lock" /></div>
+          <h3>2. Verrouillage 15 min avant</h3>
+          <p>Tu peux modifier ton pronostic autant de fois que tu veux, jusqu'à 15 minutes avant le coup d'envoi. Ensuite, c'est figé.</p>
+        </div>
+
+        <div className="rule-card">
+          <div className="rule-icon"><i className="fa-solid fa-check" /></div>
+          <h3>3. Bonne issue = points</h3>
+          <p>Si tu devines juste le résultat (victoire domicile, nul ou victoire extérieur), tu gagnes des points. Plus le résultat est surprenant, plus il en rapporte.</p>
+        </div>
+
+        <div className="rule-card">
+          <div className="rule-icon"><i className="fa-solid fa-bullseye" /></div>
+          <h3>4. Score exact = bonus</h3>
+          <p>Si en plus le score est pile le bon, tu reçois un bonus. Moins il y a de joueurs à avoir trouvé ce score exact, plus le bonus est gros.</p>
+        </div>
+
+        <div className="rule-card">
+          <div className="rule-icon"><i className="fa-solid fa-bolt" /></div>
+          <h3>5. Le joker ×2</h3>
+          <p>Une fois par journée, tu peux activer ×2 sur un match pour doubler les points qu'il te rapporte. Un seul match à la fois.</p>
+        </div>
+
+        <div className="rule-card">
+          <div className="rule-icon"><i className="fa-solid fa-trophy" /></div>
+          <h3>6. Un seul score, partout</h3>
+          <p>Tes points sont les mêmes dans toutes tes ligues — la Tunisian League et celles que tu crées ou rejoins. Chaque ligue n'est qu'un classement différent du même score.</p>
+        </div>
+      </div>
+
+      <div className="section-heading">
+        <div><h2>Exemple concret</h2><span>Du pronostic aux points gagnés.</span></div>
+      </div>
+
+      <div className="example-card">
+        <h3>Espérance de Tunis 2 – 1 Club Africain</h3>
+        <p className="example-sub">Cotes du match : 1 → 65 pts · X → 72 pts · 2 → 110 pts. Tu as pronostiqué 2-1 avec le joker ×2 activé.</p>
+
+        <div className="example-row"><span>Résultat pronostiqué</span><b>Victoire domicile (2-1)</b></div>
+        <div className="example-row"><span>Résultat réel</span><b>Victoire domicile (2-1)</b></div>
+        <div className="example-row"><span>Issue correcte</span><b>+65 pts</b></div>
+        <div className="example-row"><span>Score exact deviné (bonus de rareté)</span><b>+20 pts</b></div>
+        <div className="example-row"><span>Joker ×2 activé</span><b>× 2</b></div>
+
+        <div className="example-total">
+          <span>Total gagné sur ce match</span>
+          <strong>170 pts</strong>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ============ ADMIN ============
 function AdminPage({ user }) {
   const [tab, setTab] = useState('matches');
@@ -923,6 +996,7 @@ const TABS = [
   { key: 'standings', label: 'Classements', icon: 'fa-ranking-star' },
   { key: 'leagues', label: 'Mes ligues', icon: 'fa-users' },
   { key: 'profile', label: 'Profil', icon: 'fa-user' },
+  { key: 'rules', label: 'Règles', icon: 'fa-book' },
 ];
 
 function AppShell() {
@@ -997,7 +1071,7 @@ function AppShell() {
       </header>
 
       <main>
-        {league && tab !== 'leagues' && tab !== 'profile' && tab !== 'admin' && (
+        {league && tab !== 'leagues' && tab !== 'profile' && tab !== 'admin' && tab !== 'rules' && (
           <p style={{ color: 'var(--muted)', fontSize: 10, marginBottom: -14 }}>
             Ligue active : <b style={{ color: 'white' }}>{league.name}</b> ·{' '}
             <button className="link-btn" onClick={() => setTab('leagues')}>changer</button>
@@ -1009,6 +1083,7 @@ function AppShell() {
         {tab === 'standings' && <StandingsPage league={league} user={user} />}
         {tab === 'leagues' && <LeaguesPage user={user} onOpenLeague={openLeague} />}
         {tab === 'profile' && <ProfilePage user={user} />}
+        {tab === 'rules' && <RulesPage />}
         {tab === 'admin' && user.username === 'admin' && <AdminPage user={user} />}
       </main>
 
