@@ -118,29 +118,109 @@ function TeamLogo({ name }) {
 }
 
 // ============ LOGIN ============
+function GoogleButton({ onCredential, onError }) {
+  const ref = useRef(null);
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  useEffect(() => {
+    if (!clientId || !window.google || !ref.current) return;
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: (resp) => {
+        if (resp?.credential) onCredential(resp.credential);
+        else onError && onError('Connexion Google annulée');
+      },
+    });
+    window.google.accounts.id.renderButton(ref.current, {
+      theme: 'outline', size: 'large', width: 320, text: 'continue_with', shape: 'pill',
+    });
+  }, [clientId]);
+
+  if (!clientId) return null;
+  return <div ref={ref} style={{ display: 'flex', justifyContent: 'center', margin: '14px 0' }} />;
+}
+
 function LoginPage({ onLogin }) {
+  const [mode, setMode] = useState('login'); // login | register | verify
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [isRegister, setIsRegister] = useState(false);
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const finishLogin = (data) => {
+    localStorage.setItem('token', data.access_token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    onLogin(data.user);
+  };
+
+  const handleGoogle = async (idToken) => {
+    setError(''); setLoading(true);
     try {
-      const endpoint = isRegister ? '/auth/register' : '/auth/login';
-      const data = isRegister ? { username, email, password } : { email, password };
-      const response = await api.post(endpoint, data);
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      onLogin(response.data.user);
+      const response = await api.post('/auth/google', { id_token: idToken });
+      finishLogin(response.data);
     } catch (err) {
       setError(errMsg(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      finishLogin(response.data);
+    } catch (err) {
+      // A 403 here means the account exists but hasn't verified its email yet.
+      if (err?.response?.status === 403) {
+        setInfo('Vérifie ton email : entre le code reçu ci-dessous.');
+        setMode('verify');
+      } else {
+        setError(errMsg(err));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      await api.post('/auth/register', { username, email, password });
+      setInfo(`Un code de vérification a été envoyé à ${email}.`);
+      setMode('verify');
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      const response = await api.post('/auth/verify-email', { email, code });
+      finishLogin(response.data);
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError(''); setInfo('');
+    try {
+      await api.post('/auth/resend-code', { email });
+      setInfo('Nouveau code envoyé.');
+    } catch (err) {
+      setError(errMsg(err));
     }
   };
 
@@ -153,26 +233,56 @@ function LoginPage({ onLogin }) {
           <small>Le jeu de prédictions 100% tunisien</small>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          {isRegister && (
-            <input className="auth-input" type="text" placeholder="Nom d'utilisateur" value={username}
-              onChange={(e) => setUsername(e.target.value)} required />
-          )}
-          <input className="auth-input" type="email" placeholder="Email" value={email}
-            onChange={(e) => setEmail(e.target.value)} required />
-          <input className="auth-input" type="password" placeholder="Mot de passe" value={password}
-            onChange={(e) => setPassword(e.target.value)} required />
+        {mode === 'verify' ? (
+          <form onSubmit={handleVerify}>
+            {info && <div className="auth-error" style={{ color: 'var(--green)', background: 'rgba(66,201,138,.1)' }}>{info}</div>}
+            <input className="auth-input" type="email" value={email} disabled style={{ opacity: .6 }} />
+            <input
+              className="auth-input" type="text" inputMode="numeric" maxLength={6}
+              placeholder="Code à 6 chiffres" value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required
+              style={{ textAlign: 'center', letterSpacing: '6px', fontSize: 18, fontWeight: 800 }}
+            />
+            {error && <div className="auth-error">{error}</div>}
+            <button type="submit" disabled={loading} className="primary-btn auth-submit">
+              {loading ? 'Vérification…' : 'Vérifier et me connecter'}
+            </button>
+            <button type="button" className="auth-switch" onClick={handleResend}>Renvoyer le code</button>
+            <button type="button" className="auth-switch" onClick={() => { setMode('login'); setError(''); setInfo(''); }}>
+              ← Retour
+            </button>
+          </form>
+        ) : (
+          <>
+            <form onSubmit={mode === 'register' ? handleRegister : handleLogin}>
+              {mode === 'register' && (
+                <input className="auth-input" type="text" placeholder="Nom d'utilisateur" value={username}
+                  onChange={(e) => setUsername(e.target.value)} required />
+              )}
+              <input className="auth-input" type="email" placeholder="Email" value={email}
+                onChange={(e) => setEmail(e.target.value)} required />
+              <input className="auth-input" type="password" placeholder="Mot de passe" value={password}
+                onChange={(e) => setPassword(e.target.value)} required minLength={6} />
 
-          {error && <div className="auth-error">{error}</div>}
+              {error && <div className="auth-error">{error}</div>}
 
-          <button type="submit" disabled={loading} className="primary-btn auth-submit">
-            {loading ? 'Patiente…' : isRegister ? "Créer mon compte" : 'Se connecter'}
-          </button>
-        </form>
+              <button type="submit" disabled={loading} className="primary-btn auth-submit">
+                {loading ? 'Patiente…' : mode === 'register' ? "Créer mon compte" : 'Se connecter'}
+              </button>
+            </form>
 
-        <button className="auth-switch" onClick={() => setIsRegister(!isRegister)}>
-          {isRegister ? 'Déjà inscrit ? Se connecter' : "Pas encore de compte ? S'inscrire"}
-        </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0 4px', color: 'var(--muted)', fontSize: 10 }}>
+              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              ou
+              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            </div>
+            <GoogleButton onCredential={handleGoogle} onError={setError} />
+
+            <button className="auth-switch" onClick={() => { setMode(mode === 'register' ? 'login' : 'register'); setError(''); }}>
+              {mode === 'register' ? 'Déjà inscrit ? Se connecter' : "Pas encore de compte ? S'inscrire"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1052,7 +1162,7 @@ function AppShell() {
               <i className={`fa-solid ${t.icon}`} /><span>{t.label}</span>
             </button>
           ))}
-          {user.username === 'admin' && (
+          {user.is_admin && (
             <button className={`nav-item${tab === 'admin' ? ' active' : ''}`} onClick={() => setTab('admin')}>
               <i className="fa-solid fa-shield-halved" /><span>Admin</span>
             </button>
@@ -1084,7 +1194,7 @@ function AppShell() {
         {tab === 'leagues' && <LeaguesPage user={user} onOpenLeague={openLeague} />}
         {tab === 'profile' && <ProfilePage user={user} />}
         {tab === 'rules' && <RulesPage />}
-        {tab === 'admin' && user.username === 'admin' && <AdminPage user={user} />}
+        {tab === 'admin' && user.is_admin && <AdminPage user={user} />}
       </main>
 
       <footer className="footer">
