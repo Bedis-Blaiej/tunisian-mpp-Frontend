@@ -124,6 +124,11 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
 .team strong { font-size: 12px; }
 .team small { color: var(--muted); font-size: 9px; }
 .team-logo { width: 43px; height: 43px; border-radius: 13px; display: grid; place-items: center; font-size: 10px; font-weight: 900; margin-bottom: 2px; border: 1px solid rgba(255,255,255,.15); }
+.team-logo-img {
+  width: 43px; height: 43px; border-radius: 13px; margin-bottom: 2px;
+  background: #fff; border: 1px solid rgba(255,255,255,.15);
+  object-fit: contain; padding: 4px; box-sizing: border-box;
+}
 .team-logo.red { background: #8f151a; }
 .team-logo.gold { background: #b18a28; color: #161616; }
 .team-logo.blue { background: #174b91; }

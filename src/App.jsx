@@ -113,7 +113,35 @@ function StateBox({ loading, error, onRetry, loadingLabel = 'Chargement…' }) {
   return null;
 }
 
+// Auto-discovers every image dropped into src/assets/teams/ — no need to
+// import each one by hand. Matches by a normalized "slug" of the filename
+// (accents stripped, lowercased, spaces/punctuation → dashes) against the
+// same slug of the team name coming from the backend.
+const teamLogoFiles = import.meta.glob('./assets/teams/*.{png,jpg,jpeg,svg,webp,PNG,JPG,JPEG}', {
+  eager: true, import: 'default',
+});
+
+function slugify(str) {
+  return (str || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents (é → e, etc.)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+const teamLogoBySlug = {};
+for (const path in teamLogoFiles) {
+  const filename = path.split('/').pop().replace(/\.[^.]+$/, '');
+  teamLogoBySlug[slugify(filename)] = teamLogoFiles[path];
+}
+
 function TeamLogo({ name }) {
+  const src = teamLogoBySlug[slugify(name)];
+  if (src) {
+    return <img className="team-logo-img" src={src} alt={name} title={name} />;
+  }
+  // No matching file found — fall back to the colored-initials circle
+  // instead of showing nothing.
   return <div className={`team-logo ${colorFor(name)}`}>{teamCode(name)}</div>;
 }
 
@@ -175,10 +203,17 @@ function LoginPage({ onLogin }) {
       const response = await api.post('/auth/login', { email, password });
       finishLogin(response.data);
     } catch (err) {
-      // A 403 here means the account exists but hasn't verified its email yet.
+      // A 403 here means the account exists but hasn't verified its email
+      // yet — send a fresh code right away instead of just telling them to
+      // "enter the code" when none may have actually arrived.
       if (err?.response?.status === 403) {
-        setInfo('Vérifie ton email : entre le code reçu ci-dessous.');
         setMode('verify');
+        try {
+          await api.post('/auth/resend-code', { email });
+          setInfo('Un code de vérification vient d\u2019être envoyé.');
+        } catch (resendErr) {
+          setError(errMsg(resendErr, "Impossible d'envoyer le code — réessaie dans un instant."));
+        }
       } else {
         setError(errMsg(err));
       }
