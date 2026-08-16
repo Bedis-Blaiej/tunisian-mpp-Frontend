@@ -327,7 +327,54 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
    ============================================================ */
 
 /* Login */
-.auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.auth-wrap {
+  min-height: 100vh; padding: 40px 20px;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(900px circle at 12% -10%, rgba(215,25,32,.16), transparent 55%),
+    radial-gradient(700px circle at 100% 100%, rgba(216,167,44,.10), transparent 55%);
+}
+.auth-hero {
+  width: 100%; max-width: 980px;
+  display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center;
+}
+@media (max-width: 860px) { .auth-hero { grid-template-columns: 1fr; gap: 32px; } }
+
+.auth-pitch { color: white; }
+.auth-pitch .pitch-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(215,25,32,.12); border: 1px solid rgba(215,25,32,.3); color: var(--red-bright);
+  border-radius: 999px; padding: 5px 12px; font-size: 10px; font-weight: 900;
+  text-transform: uppercase; letter-spacing: .8px; margin-bottom: 16px;
+}
+.auth-pitch h1 {
+  font-family: "Barlow Condensed", sans-serif; font-weight: 700;
+  font-size: 44px; line-height: 1.05; margin: 0 0 14px;
+}
+.auth-pitch h1 em { color: var(--red-bright); font-style: normal; }
+.auth-pitch p.pitch-sub { color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 440px; margin: 0 0 26px; }
+@media (max-width: 860px) { .auth-pitch h1 { font-size: 32px; } }
+
+.pitch-highlights { display: flex; flex-direction: column; gap: 14px; margin-bottom: 30px; }
+.pitch-highlights div { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #ddd; }
+.pitch-highlights i {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px; display: grid; place-items: center;
+  background: rgba(216,167,44,.12); color: var(--gold); font-size: 13px;
+}
+
+.hero-preview {
+  border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+  background: var(--surface); max-width: 320px; box-shadow: var(--shadow);
+}
+.hero-preview .hp-label { font-size: 9px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 800; margin-bottom: 10px; }
+.hero-preview .hp-teams { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.hero-preview .hp-team { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; color: #ddd; width: 72px; text-align: center; }
+.hero-preview .hp-score { display: flex; align-items: center; gap: 6px; }
+.hero-preview .hp-score input {
+  width: 34px; height: 34px; text-align: center; font-weight: 800; font-size: 15px;
+  color: white; background: #0d0f12; border: 1px solid var(--border); border-radius: 8px; pointer-events: none;
+}
+
 .auth-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow); }
 .auth-brand { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 22px; }
 .auth-brand img { width: 64px; height: 64px; object-fit: contain; margin-bottom: 10px; }

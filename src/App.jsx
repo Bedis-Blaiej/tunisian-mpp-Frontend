@@ -261,7 +261,35 @@ function LoginPage({ onLogin }) {
 
   return (
     <div className="auth-wrap">
-      <div className="auth-card">
+      <div className="auth-hero">
+        <div className="auth-pitch">
+          <span className="pitch-badge"><i className="fa-solid fa-star" /> 100% tunisien</span>
+          <h1>Pronostique chaque <em>match</em>.<br />Défie tes potes.</h1>
+          <p className="pitch-sub">
+            Un score à deviner avant chaque coup d'envoi, un classement qui bouge à chaque
+            journée, et un joker ×2 pour faire la différence. Gratuit, en 30 secondes.
+          </p>
+
+          <div className="pitch-highlights">
+            <div><i className="fa-solid fa-bolt" /> Points calculés en direct, dès le coup de sifflet final</div>
+            <div><i className="fa-solid fa-users" /> Crée ta ligue privée ou défie tout le pays</div>
+            <div><i className="fa-solid fa-bullseye" /> Score exact = bonus, ×2 une fois par journée</div>
+          </div>
+
+          <div className="hero-preview">
+            <p className="hp-label">Aperçu · Ligue 1 Tunisienne</p>
+            <div className="hp-teams">
+              <div className="hp-team"><TeamLogo name="Espérance" />Espérance</div>
+              <div className="hp-score">
+                <input value="2" readOnly /><span style={{ color: 'var(--muted)' }}>–</span><input value="1" readOnly />
+              </div>
+              <div className="hp-team"><TeamLogo name="Club Africain" />Club Africain</div>
+            </div>
+            <div className="points-rule"><i className="fa-solid fa-star" /><span>Issue correcte : <b>65 pts</b> · score exact : bonus surprise</span></div>
+          </div>
+        </div>
+
+        <div className="auth-card">
         <div className="auth-brand">
           <img src={logo} alt="Pronos Tunisie" />
           <strong>PRONOS <em>TUNISIE</em></strong>
@@ -318,6 +346,7 @@ function LoginPage({ onLogin }) {
             </button>
           </>
         )}
+        </div>
       </div>
     </div>
   );
