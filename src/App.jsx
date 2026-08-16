@@ -264,10 +264,10 @@ function LoginPage({ onLogin }) {
       <div className="auth-hero">
         <div className="auth-pitch">
           <span className="pitch-badge"><i className="fa-solid fa-star" /> 100% tunisien</span>
-          <h1>Pronostique chaque <em>match</em>.<br />Défie tes potes.</h1>
+          <h1>Tu crois tout savoir<br />sur la <em>Ligue 1</em> ?</h1>
           <p className="pitch-sub">
-            Un score à deviner avant chaque coup d'envoi, un classement qui bouge à chaque
-            journée, et un joker ×2 pour faire la différence. Gratuit, en 30 secondes.
+            Prouve-le. Pronostique le score de chaque match, cumule des points et
+            grimpe au classement avec tes potes. Gratuit, ça prend 30 secondes.
           </p>
 
           <div className="pitch-highlights">
@@ -277,15 +277,18 @@ function LoginPage({ onLogin }) {
           </div>
 
           <div className="hero-preview">
-            <p className="hp-label">Aperçu · Ligue 1 Tunisienne</p>
-            <div className="hp-teams">
-              <div className="hp-team"><TeamLogo name="Espérance" />Espérance</div>
-              <div className="hp-score">
-                <input value="2" readOnly /><span style={{ color: 'var(--muted)' }}>–</span><input value="1" readOnly />
-              </div>
-              <div className="hp-team"><TeamLogo name="Club Africain" />Club Africain</div>
+            <p className="hp-label">Ton profil, après quelques journées</p>
+            <div className="hp-profile-head">
+              <span className="profile-avatar" style={{ width: 44, height: 44, fontSize: 14, margin: 0 }}>MA</span>
+              <div><b>MedAmine92</b><small>Membre depuis septembre</small></div>
             </div>
-            <div className="points-rule"><i className="fa-solid fa-star" /><span>Issue correcte : <b>65 pts</b> · score exact : bonus surprise</span></div>
+            <div className="hp-stat-row">
+              <div><strong>48</strong><small>Pronostics</small></div>
+              <div><strong>31</strong><small>Corrects</small></div>
+              <div><strong>1240</strong><small>Points</small></div>
+            </div>
+            <div className="performance-bar" style={{ margin: '12px 0 8px' }}><span style={{ width: '64%' }} /></div>
+            <p className="hp-label" style={{ marginBottom: 0 }}>64% de réussite sur les 15 derniers matchs</p>
           </div>
         </div>
 
