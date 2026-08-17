@@ -2,12 +2,14 @@
  * Pronos Tunisie — React Frontend
  * Markup/classes match the provided styles.css design system.
  * All content is wired to the real backend (no placeholder data).
+ * Available in French, English, and Tunisian Arabic — see ./i18n.js
  */
 
 import React, { useState, useEffect, useRef, useContext, createContext } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import logo from './assets/logo.png';
+import { LanguageProvider, LanguageSwitcher, useLanguage } from './i18n';
 import './styles.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -21,7 +23,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-function errMsg(err, fallback = 'Une erreur est survenue') {
+function errMsg(err, fallback = 'Something went wrong') {
   return err?.response?.data?.detail || err?.message || fallback;
 }
 
@@ -55,18 +57,20 @@ function initials(name) {
   return (name || '?').slice(0, 2).toUpperCase();
 }
 
-function formatDayLabel(dateStr) {
+const LOCALE_MAP = { fr: 'fr-FR', en: 'en-US', ar: 'ar-TN' };
+function capitalize(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+function formatDayLabel(dateStr, lang, t) {
   const d = new Date(dateStr);
   const today = new Date();
   const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
   const sameDay = (a, b) => a.toDateString() === b.toDateString();
-  if (sameDay(d, today)) return { title: "Aujourd'hui", sub: capFr(d) };
-  if (sameDay(d, yesterday)) return { title: 'Hier', sub: capFr(d) };
-  return { title: capFr(d), sub: null };
-}
-function capFr(d) {
-  const s = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  const locale = LOCALE_MAP[lang] || 'fr-FR';
+  const full = capitalize(d.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }));
+  if (sameDay(d, today)) return { title: t('results.today'), sub: full };
+  if (sameDay(d, yesterday)) return { title: t('results.yesterday'), sub: full };
+  return { title: full, sub: null };
 }
 
 // ============ TOAST ============
@@ -93,20 +97,21 @@ function ToastProvider({ children }) {
 }
 
 // ============ SHARED UI ============
-function StateBox({ loading, error, onRetry, loadingLabel = 'Chargement…' }) {
+function StateBox({ loading, error, onRetry, loadingLabel }) {
+  const { t } = useLanguage();
   if (loading) {
     return (
       <div className="state-box">
         <div className="spin" />
-        <p>{loadingLabel}</p>
+        <p>{loadingLabel || t('common.loading')}</p>
       </div>
     );
   }
   if (error) {
     return (
       <div className="state-box error">
-        <p>{errMsg(error)}</p>
-        {onRetry && <button className="secondary-btn" onClick={onRetry}>Réessayer</button>}
+        <p>{errMsg(error, t('common.error'))}</p>
+        {onRetry && <button className="secondary-btn" onClick={onRetry}>{t('common.retry')}</button>}
       </div>
     );
   }
@@ -146,7 +151,7 @@ function TeamLogo({ name }) {
 }
 
 // ============ LOGIN ============
-function GoogleButton({ onCredential, onError }) {
+function GoogleButton({ onCredential, onError, cancelledMsg }) {
   const ref = useRef(null);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -156,7 +161,7 @@ function GoogleButton({ onCredential, onError }) {
       client_id: clientId,
       callback: (resp) => {
         if (resp?.credential) onCredential(resp.credential);
-        else onError && onError('Connexion Google annulée');
+        else onError && onError(cancelledMsg || 'Google sign-in cancelled');
       },
     });
     window.google.accounts.id.renderButton(ref.current, {
@@ -169,6 +174,7 @@ function GoogleButton({ onCredential, onError }) {
 }
 
 function LoginPage({ onLogin }) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState('login'); // login | register | verify
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -190,7 +196,7 @@ function LoginPage({ onLogin }) {
       const response = await api.post('/auth/google', { id_token: idToken });
       finishLogin(response.data);
     } catch (err) {
-      setError(errMsg(err));
+      setError(errMsg(err, t('common.error')));
     } finally {
       setLoading(false);
     }
@@ -210,12 +216,12 @@ function LoginPage({ onLogin }) {
         setMode('verify');
         try {
           await api.post('/auth/resend-code', { email });
-          setInfo('Un code de vérification vient d\u2019être envoyé.');
+          setInfo(t('login.codeJustSent'));
         } catch (resendErr) {
-          setError(errMsg(resendErr, "Impossible d'envoyer le code — réessaie dans un instant."));
+          setError(errMsg(resendErr, t('login.couldNotSendCode')));
         }
       } else {
-        setError(errMsg(err));
+        setError(errMsg(err, t('common.error')));
       }
     } finally {
       setLoading(false);
@@ -227,10 +233,10 @@ function LoginPage({ onLogin }) {
     setError(''); setLoading(true);
     try {
       await api.post('/auth/register', { username, email, password });
-      setInfo(`Un code de vérification a été envoyé à ${email}.`);
+      setInfo(t('login.codeSentTo', email));
       setMode('verify');
     } catch (err) {
-      setError(errMsg(err));
+      setError(errMsg(err, t('common.error')));
     } finally {
       setLoading(false);
     }
@@ -243,7 +249,7 @@ function LoginPage({ onLogin }) {
       const response = await api.post('/auth/verify-email', { email, code });
       finishLogin(response.data);
     } catch (err) {
-      setError(errMsg(err));
+      setError(errMsg(err, t('common.error')));
     } finally {
       setLoading(false);
     }
@@ -253,42 +259,40 @@ function LoginPage({ onLogin }) {
     setError(''); setInfo('');
     try {
       await api.post('/auth/resend-code', { email });
-      setInfo('Nouveau code envoyé.');
+      setInfo(t('login.codeResent'));
     } catch (err) {
-      setError(errMsg(err));
+      setError(errMsg(err, t('common.error')));
     }
   };
 
   return (
     <div className="auth-wrap">
+      <div className="auth-lang"><LanguageSwitcher /></div>
       <div className="auth-hero">
         <div className="auth-pitch">
-          <span className="pitch-badge"><i className="fa-solid fa-star" /> 100% tunisien</span>
-          <h1>Tu crois tout savoir<br />sur la <em>Ligue 1</em> ?</h1>
-          <p className="pitch-sub">
-            Prouve-le. Pronostique le score de chaque match, cumule des points et
-            grimpe au classement avec tes potes. Gratuit, ça prend 30 secondes.
-          </p>
+          <span className="pitch-badge"><i className="fa-solid fa-star" /> {t('login.badge')}</span>
+          <h1>{t('login.headline1')}<br /><em>{t('login.headline2em')}</em>{t('login.headline2suffix')}</h1>
+          <p className="pitch-sub">{t('login.sub')}</p>
 
           <div className="pitch-highlights">
-            <div><i className="fa-solid fa-bolt" /> Points calculés en direct, dès le coup de sifflet final</div>
-            <div><i className="fa-solid fa-users" /> Crée ta ligue privée ou défie tout le pays</div>
-            <div><i className="fa-solid fa-bullseye" /> Score exact = bonus, ×2 une fois par journée</div>
+            <div><i className="fa-solid fa-bolt" /> {t('login.h1')}</div>
+            <div><i className="fa-solid fa-users" /> {t('login.h2')}</div>
+            <div><i className="fa-solid fa-bullseye" /> {t('login.h3')}</div>
           </div>
 
           <div className="hero-preview">
-            <p className="hp-label">Ton profil, après quelques journées</p>
+            <p className="hp-label">{t('login.previewLabel')}</p>
             <div className="hp-profile-head">
               <span className="profile-avatar" style={{ width: 44, height: 44, fontSize: 14, margin: 0 }}>MA</span>
-              <div><b>MedAmine92</b><small>Membre depuis septembre</small></div>
+              <div><b>{t('login.previewName')}</b><small>{t('login.previewSince')}</small></div>
             </div>
             <div className="hp-stat-row">
-              <div><strong>48</strong><small>Pronostics</small></div>
-              <div><strong>31</strong><small>Corrects</small></div>
-              <div><strong>1240</strong><small>Points</small></div>
+              <div><strong>48</strong><small>{t('login.previewPredictions')}</small></div>
+              <div><strong>31</strong><small>{t('login.previewCorrect')}</small></div>
+              <div><strong>1240</strong><small>{t('login.previewPoints')}</small></div>
             </div>
             <div className="performance-bar" style={{ margin: '12px 0 8px' }}><span style={{ width: '64%' }} /></div>
-            <p className="hp-label" style={{ marginBottom: 0 }}>64% de réussite sur les 15 derniers matchs</p>
+            <p className="hp-label" style={{ marginBottom: 0 }}>{t('login.previewPerf')}</p>
           </div>
         </div>
 
@@ -296,7 +300,7 @@ function LoginPage({ onLogin }) {
         <div className="auth-brand">
           <img src={logo} alt="Pronos Tunisie" />
           <strong>PRONOS <em>TUNISIE</em></strong>
-          <small>Le jeu de prédictions 100% tunisien</small>
+          <small>{t('login.brandTag')}</small>
         </div>
 
         {mode === 'verify' ? (
@@ -305,47 +309,47 @@ function LoginPage({ onLogin }) {
             <input className="auth-input" type="email" value={email} disabled style={{ opacity: .6 }} />
             <input
               className="auth-input" type="text" inputMode="numeric" maxLength={6}
-              placeholder="Code à 6 chiffres" value={code}
+              placeholder={t('login.codePlaceholder')} value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required
               style={{ textAlign: 'center', letterSpacing: '6px', fontSize: 18, fontWeight: 800 }}
             />
             {error && <div className="auth-error">{error}</div>}
             <button type="submit" disabled={loading} className="primary-btn auth-submit">
-              {loading ? 'Vérification…' : 'Vérifier et me connecter'}
+              {loading ? t('login.verifying') : t('login.verifyAndLogin')}
             </button>
-            <button type="button" className="auth-switch" onClick={handleResend}>Renvoyer le code</button>
+            <button type="button" className="auth-switch" onClick={handleResend}>{t('login.resendCode')}</button>
             <button type="button" className="auth-switch" onClick={() => { setMode('login'); setError(''); setInfo(''); }}>
-              ← Retour
+              {t('common.back')}
             </button>
           </form>
         ) : (
           <>
             <form onSubmit={mode === 'register' ? handleRegister : handleLogin}>
               {mode === 'register' && (
-                <input className="auth-input" type="text" placeholder="Nom d'utilisateur" value={username}
+                <input className="auth-input" type="text" placeholder={t('login.username')} value={username}
                   onChange={(e) => setUsername(e.target.value)} required />
               )}
-              <input className="auth-input" type="email" placeholder="Email" value={email}
+              <input className="auth-input" type="email" placeholder={t('login.email')} value={email}
                 onChange={(e) => setEmail(e.target.value)} required />
-              <input className="auth-input" type="password" placeholder="Mot de passe" value={password}
+              <input className="auth-input" type="password" placeholder={t('login.password')} value={password}
                 onChange={(e) => setPassword(e.target.value)} required minLength={6} />
 
               {error && <div className="auth-error">{error}</div>}
 
               <button type="submit" disabled={loading} className="primary-btn auth-submit">
-                {loading ? 'Patiente…' : mode === 'register' ? "Créer mon compte" : 'Se connecter'}
+                {loading ? t('login.pleaseWait') : mode === 'register' ? t('login.createAccount') : t('login.signIn')}
               </button>
             </form>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0 4px', color: 'var(--muted)', fontSize: 10 }}>
               <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              ou
+              {t('login.or')}
               <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             </div>
-            <GoogleButton onCredential={handleGoogle} onError={setError} />
+            <GoogleButton onCredential={handleGoogle} onError={setError} cancelledMsg={t('login.googleCancelled')} />
 
             <button className="auth-switch" onClick={() => { setMode(mode === 'register' ? 'login' : 'register'); setError(''); }}>
-              {mode === 'register' ? 'Déjà inscrit ? Se connecter' : "Pas encore de compte ? S'inscrire"}
+              {mode === 'register' ? t('login.alreadyAccount') : t('login.noAccount')}
             </button>
           </>
         )}
@@ -357,6 +361,7 @@ function LoginPage({ onLogin }) {
 
 // ============ MATCH CARD (Mes pronos) ============
 function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, onSaved }) {
+  const { t, lang } = useLanguage();
   const [home, setHome] = useState(existingPrediction?.predicted_home_goals ?? '');
   const [away, setAway] = useState(existingPrediction?.predicted_away_goals ?? '');
   const [x2, setX2] = useState(existingPrediction?.x2_applied ?? false);
@@ -392,8 +397,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
       setStatus('ok');
       onSaved && onSaved();
     } catch (err) {
-      setStatus('err');
-      setStatus(errMsg(err));
+      setStatus(errMsg(err, t('common.error')));
     }
   };
 
@@ -411,7 +415,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
   return (
     <article className={`match-card${featured ? ' featured' : ''}`}>
       <div className="match-meta">
-        <span>{new Date(match.kickoff_time).toLocaleDateString('fr-FR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}</span>
+        <span>{new Date(match.kickoff_time).toLocaleDateString(LOCALE_MAP[lang], { weekday: 'long', hour: '2-digit', minute: '2-digit' })}</span>
         <span className="league-tag">J.{match.gameweek}</span>
       </div>
 
@@ -419,11 +423,11 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
         <div className="team">
           <TeamLogo name={match.home_team} />
           <strong>{match.home_team}</strong>
-          <small>Domicile</small>
+          <small>{t('matchCard.home')}</small>
         </div>
 
         <div className="prediction-box">
-          <label>Ton score</label>
+          <label>{t('matchCard.yourScore')}</label>
           {isFinished ? (
             <div className="score-inputs">
               <input value={match.home_goals} disabled />
@@ -431,7 +435,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
               <input value={match.away_goals} disabled />
             </div>
           ) : isLocked ? (
-            <div className="locked-chip"><i className="fa-solid fa-lock" /> Verrouillé</div>
+            <div className="locked-chip"><i className="fa-solid fa-lock" /> {t('matchCard.locked')}</div>
           ) : (
             <>
               <div className="score-inputs">
@@ -447,14 +451,14 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
                   className={`x2-chip${x2 ? ' active' : ''}`}
                   disabled={x2LockedByOther}
                   onClick={() => toggleX2(!x2)}
-                  title={x2LockedByOther ? `×2 déjà utilisé sur ${x2Status.used_for_match}` : 'Doubler les points de ce match'}
+                  title={x2LockedByOther ? t('matchCard.doubleTitle', x2Status.used_for_match) : t('matchCard.doubleHint')}
                 >
-                  ×2 {x2 ? 'activé' : ''}
+                  ×2 {x2 ? t('matchCard.activeWord') : ''}
                 </button>
               </div>
-              {x2LockedByOther && <p className="x2-note">×2 déjà utilisé sur {x2Status.used_for_match}</p>}
+              {x2LockedByOther && <p className="x2-note">{t('matchCard.x2Used', x2Status.used_for_match)}</p>}
               <div className={`save-indicator ${status === 'ok' ? 'ok' : status && status !== 'saving' ? 'err' : ''}`}>
-                {status === 'saving' ? 'Enregistrement…' : status === 'ok' ? '✓ Enregistré' : status && status !== '' ? status : ''}
+                {status === 'saving' ? t('matchCard.saving') : status === 'ok' ? t('matchCard.saved') : status && status !== '' ? status : ''}
               </div>
             </>
           )}
@@ -463,7 +467,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
         <div className="team">
           <TeamLogo name={match.away_team} />
           <strong>{match.away_team}</strong>
-          <small>Extérieur</small>
+          <small>{t('matchCard.away')}</small>
         </div>
       </div>
 
@@ -472,16 +476,16 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
           <div className="points-rule">
             <i className="fa-solid fa-star" />
             {existingPrediction.points_earned > 0
-              ? <span>Tu as gagné <b>+{existingPrediction.points_earned} pts</b>{existingPrediction.is_exact_match ? ' · score exact 🎯' : ''}</span>
-              : <span>Pronostic manqué · <b>0 pt</b></span>}
+              ? <span>{t('matchCard.won')} <b>{t('matchCard.wonPts', existingPrediction.points_earned)}</b>{existingPrediction.is_exact_match ? t('matchCard.exactTag') : ''}</span>
+              : <span>{t('matchCard.missed')} · <b>{t('matchCard.zeroPt')}</b></span>}
           </div>
         )
       ) : (
         <div className="points-rule">
           <i className="fa-solid fa-star" />
           {predictedResult
-            ? <span>Issue correcte : <b>{potential}{x2 ? ' × 2' : ''} pts</b> · score exact : bonus surprise</span>
-            : <span>Issue correcte : <b>{match.odds_home}/{match.odds_draw}/{match.odds_away} pts</b> selon le résultat</span>}
+            ? <span>{t('matchCard.correctResult')}<b>{potential}{x2 ? ' × 2' : ''} pts</b>{t('matchCard.exactBonus')}</span>
+            : <span>{t('matchCard.correctResult')}<b>{match.odds_home}/{match.odds_draw}/{match.odds_away} pts</b>{t('matchCard.accordingToResult')}</span>}
         </div>
       )}
     </article>
@@ -490,6 +494,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
 
 // ============ MES PRONOS ============
 function PredictionsPage({ league, user }) {
+  const { t } = useLanguage();
   const [gameweek, setGameweek] = useState(1);
 
   const { data: matches, isLoading, isError, error, refetch } = useQuery({
@@ -533,20 +538,20 @@ function PredictionsPage({ league, user }) {
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   if (!league) {
-    return <StateBox loading loadingLabel="Préparation de ta ligue…" />;
+    return <StateBox loading loadingLabel={t('predictions.preparingLeague')} />;
   }
 
   return (
     <section className="page active">
       <div className="hero-row">
         <div>
-          <p className="eyebrow"><i className="fa-solid fa-fire" /> {league.name} · Journée {gameweek}</p>
-          <h1>À toi de jouer.</h1>
-          <p className="page-intro">Prédisez les scores, cumulez des points et grimpez au classement.</p>
+          <p className="eyebrow"><i className="fa-solid fa-fire" /> {league.name} · {t('predictions.journee', gameweek)}</p>
+          <h1>{t('predictions.heroTitle')}</h1>
+          <p className="page-intro">{t('predictions.heroSub')}</p>
         </div>
         <div className="round-selector">
           <button className="round-arrow" onClick={() => setGameweek((g) => Math.max(1, g - 1))}><i className="fa-solid fa-chevron-left" /></button>
-          <div><small>Journée</small><strong>{String(gameweek).padStart(2, '0')}</strong></div>
+          <div><small>{t('predictions.roundLabel')}</small><strong>{String(gameweek).padStart(2, '0')}</strong></div>
           <button className="round-arrow" onClick={() => setGameweek((g) => g + 1)}><i className="fa-solid fa-chevron-right" /></button>
         </div>
       </div>
@@ -554,28 +559,28 @@ function PredictionsPage({ league, user }) {
       <div className="stat-strip">
         <div className="mini-stat">
           <span className="stat-icon"><i className="fa-solid fa-trophy" /></span>
-          <div><small>Mon score</small><strong>{myScore} pts</strong></div>
+          <div><small>{t('predictions.myScore')}</small><strong>{myScore} pts</strong></div>
         </div>
         <div className="mini-stat">
           <span className="stat-icon"><i className="fa-solid fa-chart-line" /></span>
-          <div><small>Cette journée</small><strong>{gwPoints > 0 ? '+' : ''}{gwPoints} pts</strong></div>
+          <div><small>{t('predictions.thisRound')}</small><strong>{gwPoints > 0 ? '+' : ''}{gwPoints} pts</strong></div>
         </div>
         <div className="mini-stat">
           <span className="stat-icon"><i className="fa-solid fa-clock" /></span>
-          <div><small>Pronostics ouverts</small><strong>{openCount} match{openCount > 1 ? 's' : ''}</strong></div>
+          <div><small>{t('predictions.openPredictions')}</small><strong>{t('predictions.matchCount', openCount)}</strong></div>
         </div>
         <div className="round-progress">
-          <div className="progress-label"><span>Progression</span><b>{doneCount} / {totalCount || 0}</b></div>
+          <div className="progress-label"><span>{t('predictions.progress')}</span><b>{doneCount} / {totalCount || 0}</b></div>
           <div className="progress"><span style={{ width: `${progressPct}%` }} /></div>
         </div>
       </div>
 
       <div className="section-heading">
-        <div><h2>Les matchs à pronostiquer</h2><span>Un score exact rapporte plus de points.</span></div>
-        <span className="deadline"><i className="fa-regular fa-clock" /> Verrouillage : 15 min avant le coup d'envoi</span>
+        <div><h2>{t('predictions.sectionTitle')}</h2><span>{t('predictions.sectionSub')}</span></div>
+        <span className="deadline"><i className="fa-regular fa-clock" /> {t('predictions.deadline')}</span>
       </div>
 
-      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel="Chargement des matchs…" />
+      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel={t('predictions.loadingMatches')} />
 
       {!isLoading && !isError && (
         matches && matches.length > 0 ? (
@@ -588,12 +593,12 @@ function PredictionsPage({ league, user }) {
             ))}
           </div>
         ) : (
-          <div className="empty-state">Aucun match programmé pour cette journée.</div>
+          <div className="empty-state">{t('predictions.noMatches')}</div>
         )
       )}
 
       <div className="save-bar">
-        <div><i className="fa-solid fa-circle-info" /><span>Tes pronostics sont enregistrés automatiquement, modifiables jusqu'au coup d'envoi.</span></div>
+        <div><i className="fa-solid fa-circle-info" /><span>{t('predictions.saveBarNote')}</span></div>
       </div>
     </section>
   );
@@ -601,6 +606,7 @@ function PredictionsPage({ league, user }) {
 
 // ============ RÉSULTATS ============
 function ResultsPage({ league }) {
+  const { t, lang } = useLanguage();
   const [filter, setFilter] = useState('all'); // all | mine
 
   const { data: allMatches, isLoading, isError, error, refetch } = useQuery({
@@ -633,27 +639,27 @@ function ResultsPage({ league }) {
     <section className="page active">
       <div className="hero-row compact">
         <div>
-          <p className="eyebrow"><i className="fa-solid fa-flag-checkered" /> Historique</p>
-          <h1>Les résultats.</h1>
-          <p className="page-intro">Retrouve les scores officiels et découvre tes performances{league ? ` dans ${league.name}` : ''}.</p>
+          <p className="eyebrow"><i className="fa-solid fa-flag-checkered" /> {t('results.eyebrow')}</p>
+          <h1>{t('results.title')}</h1>
+          <p className="page-intro">{t('results.sub')}{league ? t('results.subIn', league.name) : ''}.</p>
         </div>
         <div className="filter-pills">
-          <button className={`pill${filter === 'all' ? ' active' : ''}`} onClick={() => setFilter('all')}>Tout</button>
-          <button className={`pill${filter === 'mine' ? ' active' : ''}`} onClick={() => setFilter('mine')}>Mes pronos</button>
+          <button className={`pill${filter === 'all' ? ' active' : ''}`} onClick={() => setFilter('all')}>{t('results.all')}</button>
+          <button className={`pill${filter === 'mine' ? ' active' : ''}`} onClick={() => setFilter('mine')}>{t('results.mine')}</button>
         </div>
       </div>
 
-      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel="Chargement des résultats…" />
+      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel={t('results.loading')} />
 
       {!isLoading && !isError && (
         sortedDays.length > 0 ? sortedDays.map((dayKey) => {
           const dayMatches = groups[dayKey].sort((a, b) => new Date(a.kickoff_time) - new Date(b.kickoff_time));
-          const { title, sub } = formatDayLabel(dayKey);
+          const { title, sub } = formatDayLabel(dayKey, lang, t);
           const dayScore = dayMatches.reduce((s, m) => s + (findPrediction(m.id)?.points_earned || 0), 0);
           return (
             <div className="result-day" key={dayKey}>
               <div className="day-heading">
-                <div><b>{title}</b>{sub && <span>{sub}</span>}<span>{dayMatches.length} match{dayMatches.length > 1 ? 's' : ''} terminé{dayMatches.length > 1 ? 's' : ''}</span></div>
+                <div><b>{title}</b>{sub && <span>{sub}</span>}<span>{t('results.matchesFinished', dayMatches.length)}</span></div>
                 <span className={`day-score${dayScore === 0 ? ' muted' : ''}`}>{dayScore > 0 ? `+${dayScore} pts` : '0 pt'}</span>
               </div>
               <div className="result-list">
@@ -661,7 +667,7 @@ function ResultsPage({ league }) {
                   const pred = findPrediction(m.id);
                   return (
                     <div className="result-row" key={m.id}>
-                      <span className="result-time">{new Date(m.kickoff_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="result-time">{new Date(m.kickoff_time).toLocaleTimeString(LOCALE_MAP[lang], { hour: '2-digit', minute: '2-digit' })}</span>
                       <div className="result-team"><b>{m.home_team}</b></div>
                       <strong className="final-score">{m.home_goals} — {m.away_goals}</strong>
                       <div className="result-team away"><b>{m.away_team}</b></div>
@@ -683,7 +689,7 @@ function ResultsPage({ league }) {
             </div>
           );
         }) : (
-          <div className="empty-state">Aucun résultat pour le moment.</div>
+          <div className="empty-state">{t('results.noResults')}</div>
         )
       )}
     </section>
@@ -692,6 +698,7 @@ function ResultsPage({ league }) {
 
 // ============ CLASSEMENTS ============
 function StandingsPage({ league, user }) {
+  const { t } = useLanguage();
   const { data: standings, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['leaderboard', league?.id],
     queryFn: async () => (await api.get(`/leagues/${league.id}/standings`)).data,
@@ -699,7 +706,7 @@ function StandingsPage({ league, user }) {
   });
 
   if (!league) {
-    return <StateBox loading loadingLabel="Préparation de ta ligue…" />;
+    return <StateBox loading loadingLabel={t('standings.preparingLeague')} />;
   }
 
   const leader = standings?.[0];
@@ -710,12 +717,12 @@ function StandingsPage({ league, user }) {
       <div className="hero-row compact">
         <div>
           <p className="eyebrow"><i className="fa-solid fa-ranking-star" /> {league.name}</p>
-          <h1>Classements.</h1>
-          <p className="page-intro">Compare ta progression avec les meilleurs pronostiqueurs.</p>
+          <h1>{t('standings.title')}</h1>
+          <p className="page-intro">{t('standings.sub')}</p>
         </div>
       </div>
 
-      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel="Chargement du classement…" />
+      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel={t('standings.loading')} />
 
       {!isLoading && !isError && standings && standings.length > 0 && (
         <>
@@ -723,22 +730,22 @@ function StandingsPage({ league, user }) {
             <div className="leader-card">
               <div className="leader-position">1</div>
               <div className="leader-avatar">{initials(leader.username)}</div>
-              <div className="leader-info"><b>{leader.username}</b><span>{leader.user_id === user.id ? "C'est toi 👑" : 'Leader actuel'}</span></div>
-              <div className="leader-score"><strong>{leader.points}</strong><span>points</span></div>
+              <div className="leader-info"><b>{leader.username}</b><span>{leader.user_id === user.id ? t('standings.itsYou') : t('standings.currentLeader')}</span></div>
+              <div className="leader-score"><strong>{leader.points}</strong><span>{t('standings.points')}</span></div>
               <div className="leader-medal">🏆</div>
             </div>
           )}
 
           {rest.length > 0 && (
             <div className="table-card">
-              <div className="table-head cols-3"><span>Rang</span><span>Joueur</span><span>Points</span></div>
+              <div className="table-head cols-3"><span>{t('standings.rank')}</span><span>{t('standings.player')}</span><span>{t('standings.pointsCol')}</span></div>
               {rest.map((entry) => (
                 <div className={`standing-row cols-3${entry.user_id === user.id ? ' current' : ''}`} key={entry.user_id}>
                   <span className="rank">{entry.rank}</span>
                   <div className="player-cell">
                     <span className="avatar small">{initials(entry.username)}</span>
                     <b>{entry.username}</b>
-                    {entry.user_id === user.id && <em>Moi</em>}
+                    {entry.user_id === user.id && <em>{t('standings.me')}</em>}
                   </div>
                   <strong>{entry.points}</strong>
                 </div>
@@ -749,7 +756,7 @@ function StandingsPage({ league, user }) {
       )}
 
       {!isLoading && !isError && (!standings || standings.length === 0) && (
-        <div className="empty-state">Personne n'a encore de points dans cette ligue.</div>
+        <div className="empty-state">{t('standings.nobodyYet')}</div>
       )}
     </section>
   );
@@ -757,6 +764,7 @@ function StandingsPage({ league, user }) {
 
 // ============ MES LIGUES ============
 function LeagueCard({ league, user, onOpen }) {
+  const { t } = useLanguage();
   const { data: standings } = useQuery({
     queryKey: ['leaderboard', league.id],
     queryFn: async () => (await api.get(`/leagues/${league.id}/standings`)).data,
@@ -774,12 +782,12 @@ function LeagueCard({ league, user, onOpen }) {
         <div className="league-title">
           <h3>{league.name}</h3>
           {isOfficial
-            ? <span className="public">Officielle</span>
-            : <span className="private">Privée · {league.invite_code}</span>}
+            ? <span className="public">{t('leagues.officialTag')}</span>
+            : <span className="private">{t('common.private')} · {league.invite_code}</span>}
         </div>
-        <p>{league.member_count ?? '?'} membre(s)</p>
+        <p>{t('leagues.members', league.member_count ?? '?')}</p>
         <div className="league-bottom">
-          <b>{rankLabel} <small>sur {standings?.length ?? '?'}</small></b>
+          <b>{rankLabel} <small>{t('leagues.of')} {standings?.length ?? '?'}</small></b>
           <button className="icon-btn" onClick={() => onOpen(league)}><i className="fa-solid fa-arrow-right" /></button>
         </div>
       </div>
@@ -788,6 +796,7 @@ function LeagueCard({ league, user, onOpen }) {
 }
 
 function LeaguesPage({ user, onOpenLeague }) {
+  const { t } = useLanguage();
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -803,22 +812,22 @@ function LeaguesPage({ user, onOpenLeague }) {
     try {
       await api.post('/leagues', { name: name.trim() });
       setName(''); setShowCreate(false);
-      notify('Ligue créée avec succès 🎉');
+      notify(t('leagues.createdSuccess'));
       refetch();
     } catch (err) {
-      notify(errMsg(err, 'Impossible de créer la ligue'));
+      notify(errMsg(err, t('leagues.createFailed')));
     }
   };
 
   const join = async () => {
-    if (!code.trim()) { notify("Entre un code d'invitation."); return; }
+    if (!code.trim()) { notify(t('leagues.enterCode')); return; }
     try {
       await api.post(`/leagues/${code.trim().toUpperCase()}/join`);
-      notify(`Tu as rejoint la ligue ${code.toUpperCase()} ✅`);
+      notify(t('leagues.joinedLeague', code.toUpperCase()));
       setCode('');
       refetch();
     } catch (err) {
-      notify(errMsg(err, 'Code invalide'));
+      notify(errMsg(err, t('leagues.invalidCode')));
     }
   };
 
@@ -826,36 +835,36 @@ function LeaguesPage({ user, onOpenLeague }) {
     <section className="page active">
       <div className="hero-row compact">
         <div>
-          <p className="eyebrow"><i className="fa-solid fa-users" /> Communauté</p>
-          <h1>Mes ligues.</h1>
-          <p className="page-intro">Crée une ligue privée ou rejoins celle de tes amis.</p>
+          <p className="eyebrow"><i className="fa-solid fa-users" /> {t('leagues.eyebrow')}</p>
+          <h1>{t('leagues.title')}</h1>
+          <p className="page-intro">{t('leagues.sub')}</p>
         </div>
-        <button className="primary-btn" onClick={() => setShowCreate(!showCreate)}><i className="fa-solid fa-plus" /> Créer une ligue</button>
+        <button className="primary-btn" onClick={() => setShowCreate(!showCreate)}><i className="fa-solid fa-plus" /> {t('leagues.createLeague')}</button>
       </div>
 
       {showCreate && (
         <div className="create-box">
-          <input placeholder="Nom de la ligue" value={name} onChange={(e) => setName(e.target.value)}
+          <input placeholder={t('leagues.leagueNamePh')} value={name} onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && create()} />
-          <button className="primary-btn" onClick={create}>Créer</button>
+          <button className="primary-btn" onClick={create}>{t('leagues.create')}</button>
         </div>
       )}
 
       <div className="join-box">
         <div className="join-icon"><i className="fa-solid fa-ticket" /></div>
-        <div><h3>Tu as un code d'invitation ?</h3><p>Entre le code reçu pour rejoindre une ligue privée.</p></div>
+        <div><h3>{t('leagues.haveCode')}</h3><p>{t('leagues.haveCodeSub')}</p></div>
         <div className="join-input">
-          <input placeholder="Ex. AB12CD" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
+          <input placeholder={t('leagues.codePh')} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === 'Enter' && join()} />
-          <button className="secondary-btn" onClick={join}>Rejoindre</button>
+          <button className="secondary-btn" onClick={join}>{t('leagues.join')}</button>
         </div>
       </div>
 
       <div className="section-heading">
-        <div><h2>Mes ligues actives</h2><span>{leagues?.length ?? 0} compétition(s) à laquelle tu participes</span></div>
+        <div><h2>{t('leagues.activeLeagues')}</h2><span>{t('leagues.competitions', leagues?.length ?? 0)}</span></div>
       </div>
 
-      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel="Chargement de tes ligues…" />
+      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel={t('leagues.loading')} />
 
       {!isLoading && !isError && (
         leagues && leagues.length > 0 ? (
@@ -865,7 +874,7 @@ function LeaguesPage({ user, onOpenLeague }) {
             ))}
           </div>
         ) : (
-          <div className="empty-state">Aucune ligue pour l'instant — crées-en une ou rejoins celle d'un ami.</div>
+          <div className="empty-state">{t('leagues.noLeagues')}</div>
         )
       )}
     </section>
@@ -874,17 +883,16 @@ function LeaguesPage({ user, onOpenLeague }) {
 
 // ============ PROFIL ============
 function ProfilePage({ user }) {
+  const { t, lang } = useLanguage();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['profile-stats', user.id],
     queryFn: async () => {
       const leagues = (await api.get('/user/leagues')).data;
-      const allPreds = [];
-      for (const league of leagues) {
-        try {
-          const preds = (await api.get('/user/predictions')).data;
-          allPreds.push(...preds);
-        } catch { /* skip */ }
-      }
+      // Predictions are account-wide now — fetch once, not once per league
+      // (looping was silently duplicating every prediction N times).
+      let allPreds = [];
+      try { allPreds = (await api.get('/user/predictions')).data; } catch { /* ignore */ }
+
       const finished = allPreds.filter((p) => p.match_status === 'finished');
       const exact = finished.filter((p) => p.is_exact_match).length;
       const correct = finished.filter((p) => p.points_earned > 0 && !p.is_exact_match).length;
@@ -895,7 +903,7 @@ function ProfilePage({ user }) {
   });
 
   const memberSince = user.created_at
-    ? new Date(user.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    ? new Date(user.created_at).toLocaleDateString(LOCALE_MAP[lang], { month: 'long', year: 'numeric' })
     : '—';
 
   const perfPct = data && data.finishedCount > 0 ? Math.round(((data.exact + data.correct) / data.finishedCount) * 100) : 0;
@@ -904,13 +912,13 @@ function ProfilePage({ user }) {
     <section className="page active">
       <div className="hero-row compact">
         <div>
-          <p className="eyebrow"><i className="fa-solid fa-user" /> Mon espace</p>
-          <h1>Mon profil.</h1>
-          <p className="page-intro">Ton historique, tes performances et ton évolution.</p>
+          <p className="eyebrow"><i className="fa-solid fa-user" /> {t('profile.eyebrow')}</p>
+          <h1>{t('profile.title')}</h1>
+          <p className="page-intro">{t('profile.sub')}</p>
         </div>
       </div>
 
-      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel="Chargement du profil…" />
+      <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel={t('profile.loading')} />
 
       {!isLoading && !isError && data && (
         <div className="profile-layout">
@@ -919,28 +927,28 @@ function ProfilePage({ user }) {
             <h2>{user.username}</h2>
             <span className="username">@{user.username}</span>
             <div className="profile-divider" />
-            <div className="profile-meta"><span><i className="fa-solid fa-calendar" /> Membre depuis</span><b>{memberSince}</b></div>
-            <div className="profile-meta"><span><i className="fa-solid fa-users" /> Ligues</span><b>{data.leagues.length}</b></div>
-            <div className="profile-meta"><span><i className="fa-solid fa-star" /> Total points</span><b>{data.totalPoints}</b></div>
+            <div className="profile-meta"><span><i className="fa-solid fa-calendar" /> {t('profile.memberSince')}</span><b>{memberSince}</b></div>
+            <div className="profile-meta"><span><i className="fa-solid fa-users" /> {t('profile.leaguesLabel')}</span><b>{data.leagues.length}</b></div>
+            <div className="profile-meta"><span><i className="fa-solid fa-star" /> {t('profile.totalPoints')}</span><b>{data.totalPoints}</b></div>
           </article>
 
           <div className="profile-stats">
-            <div className="stat-card"><span><i className="fa-solid fa-bullseye" /></span><div><small>Pronostics</small><strong>{data.totalPredictions}</strong></div></div>
-            <div className="stat-card"><span><i className="fa-solid fa-circle-check" /></span><div><small>Corrects</small><strong>{data.exact + data.correct}</strong></div></div>
-            <div className="stat-card"><span><i className="fa-solid fa-crosshairs" /></span><div><small>Scores exacts</small><strong>{data.exact}</strong></div></div>
-            <div className="stat-card"><span><i className="fa-solid fa-star" /></span><div><small>Total points</small><strong>{data.totalPoints}</strong></div></div>
+            <div className="stat-card"><span><i className="fa-solid fa-bullseye" /></span><div><small>{t('profile.predictionsLabel')}</small><strong>{data.totalPredictions}</strong></div></div>
+            <div className="stat-card"><span><i className="fa-solid fa-circle-check" /></span><div><small>{t('profile.correctLabel')}</small><strong>{data.exact + data.correct}</strong></div></div>
+            <div className="stat-card"><span><i className="fa-solid fa-crosshairs" /></span><div><small>{t('profile.exactScoresLabel')}</small><strong>{data.exact}</strong></div></div>
+            <div className="stat-card"><span><i className="fa-solid fa-star" /></span><div><small>{t('profile.totalPoints')}</small><strong>{data.totalPoints}</strong></div></div>
           </div>
 
           <article className="performance-card">
             <div className="card-title">
-              <div><h3>Performance</h3><span>Sur tes {data.finishedCount} derniers pronostics joués</span></div>
+              <div><h3>{t('profile.performance')}</h3><span>{t('profile.last', data.finishedCount)}</span></div>
               <b>{perfPct}%</b>
             </div>
             <div className="performance-bar"><span style={{ width: `${perfPct}%` }} /></div>
             <div className="performance-legend">
-              <span><i className="dot exact-dot" /> Score exact <b>{data.exact}</b></span>
-              <span><i className="dot correct-dot" /> Issue correcte <b>{data.correct}</b></span>
-              <span><i className="dot miss-dot" /> Faux <b>{data.miss}</b></span>
+              <span><i className="dot exact-dot" /> {t('profile.exactScore')} <b>{data.exact}</b></span>
+              <span><i className="dot correct-dot" /> {t('profile.correctResult')} <b>{data.correct}</b></span>
+              <span><i className="dot miss-dot" /> {t('profile.wrong')} <b>{data.miss}</b></span>
             </div>
           </article>
         </div>
@@ -951,70 +959,71 @@ function ProfilePage({ user }) {
 
 // ============ RÈGLES DU JEU ============
 function RulesPage() {
+  const { t } = useLanguage();
   return (
     <section className="page active">
       <div className="hero-row compact">
         <div>
-          <p className="eyebrow"><i className="fa-solid fa-book" /> À lire avant de jouer</p>
-          <h1>Règles du jeu.</h1>
-          <p className="page-intro">Comment gagner des points, en 6 idées simples.</p>
+          <p className="eyebrow"><i className="fa-solid fa-book" /> {t('rules.eyebrow')}</p>
+          <h1>{t('rules.title')}</h1>
+          <p className="page-intro">{t('rules.sub')}</p>
         </div>
       </div>
 
       <div className="rules-grid">
         <div className="rule-card">
           <div className="rule-icon"><i className="fa-solid fa-pen" /></div>
-          <h3>1. Pronostique un score</h3>
-          <p>Avant chaque match, entre le score exact que tu imagines pour les deux équipes. Un pronostic par match.</p>
+          <h3>{t('rules.r1t')}</h3>
+          <p>{t('rules.r1d')}</p>
         </div>
 
         <div className="rule-card">
           <div className="rule-icon"><i className="fa-solid fa-lock" /></div>
-          <h3>2. Verrouillage 15 min avant</h3>
-          <p>Tu peux modifier ton pronostic autant de fois que tu veux, jusqu'à 15 minutes avant le coup d'envoi. Ensuite, c'est figé.</p>
+          <h3>{t('rules.r2t')}</h3>
+          <p>{t('rules.r2d')}</p>
         </div>
 
         <div className="rule-card">
           <div className="rule-icon"><i className="fa-solid fa-check" /></div>
-          <h3>3. Bonne issue = points</h3>
-          <p>Si tu devines juste le résultat (victoire domicile, nul ou victoire extérieur), tu gagnes des points. Plus le résultat est surprenant, plus il en rapporte.</p>
+          <h3>{t('rules.r3t')}</h3>
+          <p>{t('rules.r3d')}</p>
         </div>
 
         <div className="rule-card">
           <div className="rule-icon"><i className="fa-solid fa-bullseye" /></div>
-          <h3>4. Score exact = bonus</h3>
-          <p>Si en plus le score est pile le bon, tu reçois un bonus. Moins il y a de joueurs à avoir trouvé ce score exact, plus le bonus est gros.</p>
+          <h3>{t('rules.r4t')}</h3>
+          <p>{t('rules.r4d')}</p>
         </div>
 
         <div className="rule-card">
           <div className="rule-icon"><i className="fa-solid fa-bolt" /></div>
-          <h3>5. Le joker ×2</h3>
-          <p>Une fois par journée, tu peux activer ×2 sur un match pour doubler les points qu'il te rapporte. Un seul match à la fois.</p>
+          <h3>{t('rules.r5t')}</h3>
+          <p>{t('rules.r5d')}</p>
         </div>
 
         <div className="rule-card">
           <div className="rule-icon"><i className="fa-solid fa-trophy" /></div>
-          <h3>6. Un seul score, partout</h3>
-          <p>Tes points sont les mêmes dans toutes tes ligues — la Tunisian League et celles que tu crées ou rejoins. Chaque ligue n'est qu'un classement différent du même score.</p>
+          <h3>{t('rules.r6t')}</h3>
+          <p>{t('rules.r6d')}</p>
         </div>
       </div>
 
       <div className="section-heading">
-        <div><h2>Exemple concret</h2><span>Du pronostic aux points gagnés.</span></div>
+        <div><h2>{t('rules.exampleTitle')}</h2><span>{t('rules.exampleSub')}</span></div>
       </div>
 
       <div className="example-card">
-        <h3>Espérance de Tunis 2 – 1 Club Africain</h3>
-        <p className="example-sub">Cotes du match : 1 → 65 pts · X → 72 pts · 2 → 110 pts. Tu as pronostiqué 2-1 avec le joker ×2 activé.</p>
+        <h3>{t('rules.exMatch')}</h3>
+        <p className="example-sub">{t('rules.exOdds')}</p>
 
-        <div className="example-row"><span>Résultat pronostiqué</span><b>Victoire domicile (2-1)</b></div>
-        <div className="example-row"><span>Résultat réel</span><b>Victoire domicile (2-1)</b></div>
-        <div className="example-row"><span>Issue correcte</span><b>+65 pts</b></div>
-        <div className="example-row"><span>Score exact deviné (bonus de rareté)</span><b>+20 pts</b></div>
-        <div className="example-row"><span>Joker ×2 activé</span><b>× 2</b></div>
+        <div className="example-row"><span>{t('rules.exPredicted')}</span><b>{t('rules.exHomeWin')}</b></div>
+        <div className="example-row"><span>{t('rules.exActual')}</span><b>{t('rules.exHomeWin')}</b></div>
+        <div className="example-row"><span>{t('rules.exCorrect')}</span><b>+65 pts</b></div>
+        <div className="example-row"><span>{t('rules.exExactBonus')}</span><b>+20 pts</b></div>
+        <div className="example-row"><span>{t('rules.exJoker')}</span><b>× 2</b></div>
 
         <div className="example-total">
-          <span>Total gagné sur ce match</span>
+          <span>{t('rules.exTotal')}</span>
           <strong>170 pts</strong>
         </div>
       </div>
@@ -1024,6 +1033,7 @@ function RulesPage() {
 
 // ============ ADMIN ============
 function AdminPage({ user }) {
+  const { t, lang } = useLanguage();
   const [tab, setTab] = useState('matches');
   const [gameweek, setGameweek] = useState(1);
   const [selected, setSelected] = useState(null);
@@ -1052,33 +1062,33 @@ function AdminPage({ user }) {
       const res = await api.put(`/admin/matches/${selected.id}/result`, null, {
         params: { home_goals: parseInt(homeGoals), away_goals: parseInt(awayGoals) },
       });
-      setBanner({ ok: true, text: `Résultat enregistré · ${res.data.predictions_updated} pronostics mis à jour` });
+      setBanner({ ok: true, text: t('admin.resultSaved', res.data.predictions_updated) });
       setSelected(null); setHomeGoals(''); setAwayGoals('');
       refetch();
     } catch (err) {
-      setBanner({ ok: false, text: errMsg(err) });
+      setBanner({ ok: false, text: errMsg(err, t('common.error')) });
     }
   };
 
   const resetResult = async (match) => {
-    if (!window.confirm(`Réinitialiser ${match.home_team} vs ${match.away_team} ?`)) return;
+    if (!window.confirm(t('admin.confirmReset', match.home_team, match.away_team))) return;
     try {
       const res = await api.put(`/admin/matches/${match.id}/reset`);
-      setBanner({ ok: true, text: `${res.data.message} · ${res.data.predictions_reset} pronostics réinitialisés` });
+      setBanner({ ok: true, text: `${res.data.message} · ${res.data.predictions_reset}` });
       refetch();
     } catch (err) {
-      setBanner({ ok: false, text: errMsg(err) });
+      setBanner({ ok: false, text: errMsg(err, t('common.error')) });
     }
   };
 
   const deleteLeague = async (league) => {
-    if (!window.confirm(`Supprimer la ligue "${league.name}" ? Cette action est irréversible.`)) return;
+    if (!window.confirm(t('admin.confirmDelete', league.name))) return;
     try {
       const res = await api.delete(`/leagues/${league.id}`);
       notify(`${res.data.message}`);
       refetchLeagues();
     } catch (err) {
-      notify(errMsg(err));
+      notify(errMsg(err, t('common.error')));
     }
   };
 
@@ -1086,14 +1096,14 @@ function AdminPage({ user }) {
     <section className="page active">
       <div className="hero-row compact">
         <div>
-          <p className="eyebrow"><i className="fa-solid fa-shield-halved" /> Zone admin</p>
-          <h1>Tableau de bord.</h1>
+          <p className="eyebrow"><i className="fa-solid fa-shield-halved" /> {t('admin.eyebrow')}</p>
+          <h1>{t('admin.title')}</h1>
         </div>
       </div>
 
       <div className="admin-tabs">
-        <button className={`admin-tab${tab === 'matches' ? ' active' : ''}`} onClick={() => { setTab('matches'); setBanner(null); }}>Résultats des matchs</button>
-        <button className={`admin-tab${tab === 'leagues' ? ' active' : ''}`} onClick={() => { setTab('leagues'); setBanner(null); }}>Gérer les ligues</button>
+        <button className={`admin-tab${tab === 'matches' ? ' active' : ''}`} onClick={() => { setTab('matches'); setBanner(null); }}>{t('admin.matchResults')}</button>
+        <button className={`admin-tab${tab === 'leagues' ? ' active' : ''}`} onClick={() => { setTab('leagues'); setBanner(null); }}>{t('admin.manageLeagues')}</button>
       </div>
 
       {banner && <div className={`admin-banner ${banner.ok ? 'ok' : 'err'}`}>{banner.text}</div>}
@@ -1102,7 +1112,7 @@ function AdminPage({ user }) {
         <>
           <div className="round-selector" style={{ marginBottom: 18 }}>
             <button className="round-arrow" onClick={() => setGameweek((g) => Math.max(1, g - 1))}><i className="fa-solid fa-chevron-left" /></button>
-            <div><small>Journée</small><strong>{String(gameweek).padStart(2, '0')}</strong></div>
+            <div><small>{t('predictions.roundLabel')}</small><strong>{String(gameweek).padStart(2, '0')}</strong></div>
             <button className="round-arrow" onClick={() => setGameweek((g) => g + 1)}><i className="fa-solid fa-chevron-right" /></button>
           </div>
 
@@ -1112,22 +1122,22 @@ function AdminPage({ user }) {
             <>
               {finished.length > 0 && (
                 <>
-                  <h2 style={{ fontSize: 14, marginBottom: 10 }}>Terminés ({finished.length})</h2>
+                  <h2 style={{ fontSize: 14, marginBottom: 10 }}>{t('admin.finished', finished.length)}</h2>
                   {finished.map((m) => (
                     <div className="admin-row done" key={m.id}>
                       <div><b>{m.home_team} vs {m.away_team}</b><div style={{ color: 'var(--muted)', fontSize: 11 }}>{m.home_goals} — {m.away_goals}</div></div>
-                      <button className="secondary-btn" onClick={() => resetResult(m)}><i className="fa-solid fa-rotate-left" /> Réinitialiser</button>
+                      <button className="secondary-btn" onClick={() => resetResult(m)}><i className="fa-solid fa-rotate-left" /> {t('admin.reset')}</button>
                     </div>
                   ))}
                 </>
               )}
 
-              <h2 style={{ fontSize: 14, margin: '18px 0 10px' }}>À venir ({upcoming.length})</h2>
-              {upcoming.length === 0 && <div className="empty-state">Aucun match à venir pour cette journée.</div>}
+              <h2 style={{ fontSize: 14, margin: '18px 0 10px' }}>{t('admin.upcoming', upcoming.length)}</h2>
+              {upcoming.length === 0 && <div className="empty-state">{t('admin.noUpcoming')}</div>}
               {upcoming.map((m) => (
                 <div key={m.id} className={`admin-row${selected?.id === m.id ? ' selected' : ''}`} onClick={() => setSelected(m)}>
                   <b>{m.home_team} vs {m.away_team}</b>
-                  <span style={{ color: 'var(--muted)', fontSize: 10 }}>{new Date(m.kickoff_time).toLocaleString('fr-FR')}</span>
+                  <span style={{ color: 'var(--muted)', fontSize: 10 }}>{new Date(m.kickoff_time).toLocaleString(LOCALE_MAP[lang])}</span>
                 </div>
               ))}
 
@@ -1138,8 +1148,8 @@ function AdminPage({ user }) {
                   <span>—</span>
                   <input type="number" min="0" max="20" value={awayGoals} onChange={(e) => setAwayGoals(e.target.value)} required />
                   <b>{selected.away_team}</b>
-                  <button type="submit" className="primary-btn">Valider le résultat</button>
-                  <button type="button" className="secondary-btn" onClick={() => setSelected(null)}>Annuler</button>
+                  <button type="submit" className="primary-btn">{t('admin.validate')}</button>
+                  <button type="button" className="secondary-btn" onClick={() => setSelected(null)}>{t('admin.cancel')}</button>
                 </form>
               )}
             </>
@@ -1152,14 +1162,14 @@ function AdminPage({ user }) {
           {leagues?.map((league) => (
             <div className="league-admin-card" key={league.id}>
               <h4>{league.name}</h4>
-              <p>{league.invite_code} · par {league.creator}</p>
-              <p>{league.members} membre(s) · {league.predictions} pronostic(s)</p>
+              <p>{league.invite_code} · {t('admin.by')} {league.creator}</p>
+              <p>{t('leagues.members', league.members)} · {league.predictions}</p>
               <button className="danger-btn" onClick={() => deleteLeague(league)}>
-                <i className="fa-solid fa-trash" /> Supprimer
+                <i className="fa-solid fa-trash" /> {t('admin.delete')}
               </button>
             </div>
           ))}
-          {(!leagues || leagues.length === 0) && <div className="empty-state">Aucune ligue.</div>}
+          {(!leagues || leagues.length === 0) && <div className="empty-state">{t('admin.noLeagues')}</div>}
         </div>
       )}
     </section>
@@ -1167,16 +1177,17 @@ function AdminPage({ user }) {
 }
 
 // ============ APP SHELL ============
-const TABS = [
-  { key: 'predictions', label: 'Mes pronos', icon: 'fa-bullseye' },
-  { key: 'results', label: 'Résultats', icon: 'fa-flag-checkered' },
-  { key: 'standings', label: 'Classements', icon: 'fa-ranking-star' },
-  { key: 'leagues', label: 'Mes ligues', icon: 'fa-users' },
-  { key: 'profile', label: 'Profil', icon: 'fa-user' },
-  { key: 'rules', label: 'Règles', icon: 'fa-book' },
+const TAB_DEFS = [
+  { key: 'predictions', icon: 'fa-bullseye' },
+  { key: 'results', icon: 'fa-flag-checkered' },
+  { key: 'standings', icon: 'fa-ranking-star' },
+  { key: 'leagues', icon: 'fa-users' },
+  { key: 'profile', icon: 'fa-user' },
+  { key: 'rules', icon: 'fa-book' },
 ];
 
 function AppShell() {
+  const { t } = useLanguage();
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState('predictions');
   const [league, setLeague] = useState(null); // {id, name, invite_code, ...}
@@ -1219,29 +1230,30 @@ function AppShell() {
           <img src={logo} alt="Pronos Tunisie" />
           <span className="brand-copy">
             <strong>PRONOS <em>TUNISIE</em></strong>
-            <small>Le jeu de prédictions 100% tunisien</small>
+            <small>{t('login.brandTag')}</small>
           </span>
         </a>
 
         <nav className="main-nav" aria-label="Navigation principale">
-          {TABS.map((t) => (
-            <button key={t.key} className={`nav-item${tab === t.key ? ' active' : ''}`} onClick={() => setTab(t.key)}>
-              <i className={`fa-solid ${t.icon}`} /><span>{t.label}</span>
+          {TAB_DEFS.map((d) => (
+            <button key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => setTab(d.key)}>
+              <i className={`fa-solid ${d.icon}`} /><span>{t(`nav.${d.key}`)}</span>
             </button>
           ))}
           {user.is_admin && (
             <button className={`nav-item${tab === 'admin' ? ' active' : ''}`} onClick={() => setTab('admin')}>
-              <i className="fa-solid fa-shield-halved" /><span>Admin</span>
+              <i className="fa-solid fa-shield-halved" /><span>{t('nav.admin')}</span>
             </button>
           )}
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button className="profile-mini" onClick={() => setTab('profile')} aria-label="Mon profil" title="Mon profil">
+          <LanguageSwitcher />
+          <button className="profile-mini" onClick={() => setTab('profile')} aria-label={t('common.myProfile')} title={t('common.myProfile')}>
             <span className="avatar">{initials(user.username)}</span>
             <span className="online-dot" />
           </button>
-          <button className="logout-btn" onClick={handleLogout} aria-label="Se déconnecter" title="Se déconnecter">
+          <button className="logout-btn" onClick={handleLogout} aria-label={t('common.logout')} title={t('common.logout')}>
             <i className="fa-solid fa-right-from-bracket" />
           </button>
         </div>
@@ -1250,8 +1262,8 @@ function AppShell() {
       <main>
         {league && tab !== 'leagues' && tab !== 'profile' && tab !== 'admin' && tab !== 'rules' && (
           <p style={{ color: 'var(--muted)', fontSize: 10, marginBottom: -14 }}>
-            Ligue active : <b style={{ color: 'white' }}>{league.name}</b> ·{' '}
-            <button className="link-btn" onClick={() => setTab('leagues')}>changer</button>
+            {t('activeLeague')} : <b style={{ color: 'white' }}>{league.name}</b> ·{' '}
+            <button className="link-btn" onClick={() => setTab('leagues')}>{t('change')}</button>
           </p>
         )}
 
@@ -1265,14 +1277,14 @@ function AppShell() {
       </main>
 
       <footer className="footer">
-        <div><b>PRONOS TUNISIE</b><span>Le terrain des pronostiqueurs tunisiens.</span></div>
-        <span>© 2026 Pronos Tunisie</span>
+        <div><b>PRONOS TUNISIE</b><span>{t('footer.tagline')}</span></div>
+        <span>{t('footer.copyright')}</span>
       </footer>
 
       <nav className="mobile-nav">
-        {TABS.map((t) => (
-          <button key={t.key} className={`nav-item${tab === t.key ? ' active' : ''}`} onClick={() => setTab(t.key)}>
-            <i className={`fa-solid ${t.icon}`} /><span>{t.label.split(' ')[t.label.split(' ').length - 1]}</span>
+        {TAB_DEFS.map((d) => (
+          <button key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => setTab(d.key)}>
+            <i className={`fa-solid ${d.icon}`} /><span>{t(`nav.${d.key}`)}</span>
           </button>
         ))}
       </nav>
@@ -1282,10 +1294,12 @@ function AppShell() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <AppShell />
-      </ToastProvider>
-    </QueryClientProvider>
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <AppShell />
+        </ToastProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
   );
 }

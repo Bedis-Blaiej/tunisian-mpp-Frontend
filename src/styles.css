@@ -328,7 +328,7 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
 
 /* Login */
 .auth-wrap {
-  min-height: 100vh; padding: 40px 20px;
+  min-height: 100vh; padding: 40px 20px; position: relative;
   display: flex; align-items: center; justify-content: center;
   background:
     radial-gradient(900px circle at 12% -10%, rgba(215,25,32,.16), transparent 55%),
@@ -446,6 +446,49 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
   flex-shrink: 0;
 }
 .logout-btn:hover { color: var(--red-bright); border-color: rgba(215,25,32,.4); }
+
+/* Language switcher — small pill group of FR / EN / AR buttons */
+.lang-switcher { display: flex; gap: 3px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
+.lang-btn {
+  border: 0; background: transparent; color: var(--muted);
+  font-size: 9px; font-weight: 900; letter-spacing: .4px;
+  padding: 5px 8px; border-radius: 999px; cursor: pointer;
+}
+.lang-btn.active { background: var(--red-bright); color: white; }
+.lang-btn:hover:not(.active) { color: white; }
+.auth-lang { position: absolute; top: 20px; inset-inline-end: 20px; z-index: 5; }
+@media (max-width: 860px) { .auth-lang { position: static; display: flex; justify-content: center; margin-bottom: 16px; } }
+
+/* ============================================================
+   RTL (Arabic) — mirrors the layout direction. Numbers/scores are
+   left as-is since digits render correctly under the Unicode
+   bidi algorithm regardless of surrounding direction.
+   ============================================================ */
+html[dir="rtl"] body { text-align: right; }
+html[dir="rtl"] .main-nav .nav-item i,
+html[dir="rtl"] .mobile-nav .nav-item i,
+html[dir="rtl"] .pitch-highlights i,
+html[dir="rtl"] .eyebrow i,
+html[dir="rtl"] .points-rule i,
+html[dir="rtl"] .deadline i { margin-inline-end: 0; margin-inline-start: 6px; }
+html[dir="rtl"] .brand { flex-direction: row-reverse; }
+html[dir="rtl"] .save-bar > div,
+html[dir="rtl"] .join-icon + div,
+html[dir="rtl"] .mini-stat,
+html[dir="rtl"] .stat-card,
+html[dir="rtl"] .profile-meta,
+html[dir="rtl"] .hp-profile-head { flex-direction: row-reverse; text-align: right; }
+html[dir="rtl"] .score-inputs { flex-direction: row-reverse; }
+html[dir="rtl"] .example-row,
+html[dir="rtl"] .day-heading,
+html[dir="rtl"] .result-row,
+html[dir="rtl"] .standing-row,
+html[dir="rtl"] .table-head,
+html[dir="rtl"] .league-title,
+html[dir="rtl"] .league-bottom,
+html[dir="rtl"] .card-title,
+html[dir="rtl"] .admin-row,
+html[dir="rtl"] .league-body p { text-align: right; }
 
 /* Rules page */
 .rules-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 24px; }
