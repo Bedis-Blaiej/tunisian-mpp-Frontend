@@ -822,7 +822,7 @@ function LeaguesPage({ user, onOpenLeague }) {
   const join = async () => {
     if (!code.trim()) { notify(t('leagues.enterCode')); return; }
     try {
-      await api.post(`/leagues/${code.trim().toUpperCase()}/join`);
+      await api.post(`/leagues/invite/${code.trim().toUpperCase()}/join`);
       notify(t('leagues.joinedLeague', code.toUpperCase()));
       setCode('');
       refetch();
