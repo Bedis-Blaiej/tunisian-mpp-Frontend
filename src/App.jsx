@@ -1222,14 +1222,19 @@ function AppShell() {
     setTab('predictions');
   };
 
-  const openLeague = (l) => { setLeague(l); setTab('predictions'); };
+  const selectTab = (nextTab) => {
+    setTab(nextTab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const openLeague = (l) => { setLeague(l); selectTab('predictions'); };
 
   if (!user) return <LoginPage onLogin={setUser} />;
 
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#" onClick={(e) => { e.preventDefault(); setTab('predictions'); }}>
+        <a className="brand" href="#" onClick={(e) => { e.preventDefault(); selectTab('predictions'); }}>
           <img src={logo} alt="Pronos Tunisie" />
           <span className="brand-copy">
             <strong>PRONOS <em>TUNISIE</em></strong>
@@ -1239,12 +1244,12 @@ function AppShell() {
 
         <nav className="main-nav" aria-label="Navigation principale">
           {TAB_DEFS.map((d) => (
-            <button key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => setTab(d.key)}>
+            <button type="button" key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => selectTab(d.key)} aria-current={tab === d.key ? 'page' : undefined}>
               <i className={`fa-solid ${d.icon}`} /><span>{t(`nav.${d.key}`)}</span>
             </button>
           ))}
           {user.is_admin && (
-            <button className={`nav-item${tab === 'admin' ? ' active' : ''}`} onClick={() => setTab('admin')}>
+            <button type="button" className={`nav-item${tab === 'admin' ? ' active' : ''}`} onClick={() => selectTab('admin')} aria-current={tab === 'admin' ? 'page' : undefined}>
               <i className="fa-solid fa-shield-halved" /><span>{t('nav.admin')}</span>
             </button>
           )}
@@ -1252,7 +1257,7 @@ function AppShell() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <LanguageSwitcher />
-          <button className="profile-mini" onClick={() => setTab('profile')} aria-label={t('common.myProfile')} title={t('common.myProfile')}>
+          <button className="profile-mini" onClick={() => selectTab('profile')} aria-label={t('common.myProfile')} title={t('common.myProfile')}>
             <span className="avatar">{initials(user.username)}</span>
             <span className="online-dot" />
           </button>
@@ -1266,7 +1271,7 @@ function AppShell() {
         {league && tab !== 'leagues' && tab !== 'profile' && tab !== 'admin' && tab !== 'rules' && (
           <p style={{ color: 'var(--muted)', fontSize: 10, marginBottom: -14 }}>
             {t('activeLeague')} : <b style={{ color: 'white' }}>{league.name}</b> ·{' '}
-            <button className="link-btn" onClick={() => setTab('leagues')}>{t('change')}</button>
+            <button className="link-btn" onClick={() => selectTab('leagues')}>{t('change')}</button>
           </p>
         )}
 
@@ -1284,12 +1289,17 @@ function AppShell() {
         <span>{t('footer.copyright')}</span>
       </footer>
 
-      <nav className="mobile-nav">
+      <nav className={`mobile-nav${user.is_admin ? ' with-admin' : ''}`} aria-label="Navigation mobile">
         {TAB_DEFS.map((d) => (
-          <button key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => setTab(d.key)}>
+          <button type="button" key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => selectTab(d.key)} aria-current={tab === d.key ? 'page' : undefined}>
             <i className={`fa-solid ${d.icon}`} /><span>{t(`nav.${d.key}`)}</span>
           </button>
         ))}
+        {user.is_admin && (
+          <button type="button" className={`nav-item${tab === 'admin' ? ' active' : ''}`} onClick={() => selectTab('admin')} aria-current={tab === 'admin' ? 'page' : undefined}>
+            <i className="fa-solid fa-shield-halved" /><span>{t('nav.admin')}</span>
+          </button>
+        )}
       </nav>
     </div>
   );
