@@ -18,6 +18,7 @@ const translations = {
       loading: 'Chargement…', retry: 'Réessayer', cancel: 'Annuler', edit: 'Modifier',
       back: '← Retour', logout: 'Se déconnecter', admin: 'Admin', myProfile: 'Mon profil',
       official: 'Officielle', private: 'Privée', save: 'Enregistrer', error: 'Une erreur est survenue',
+      switchToLight: 'Passer au thème clair', switchToDark: 'Passer au thème sombre',
     },
     nav: { predictions: 'Mes pronos', results: 'Résultats', standings: 'Classements', leagues: 'Mes ligues', profile: 'Profil', rules: 'Règles', admin: 'Admin' },
     login: {
@@ -155,6 +156,7 @@ const translations = {
       loading: 'Loading…', retry: 'Retry', cancel: 'Cancel', edit: 'Edit',
       back: '← Back', logout: 'Log out', admin: 'Admin', myProfile: 'My profile',
       official: 'Official', private: 'Private', save: 'Save', error: 'Something went wrong',
+      switchToLight: 'Switch to light theme', switchToDark: 'Switch to dark theme',
     },
     nav: { predictions: 'Predictions', results: 'Results', standings: 'Standings', leagues: 'My leagues', profile: 'Profile', rules: 'Rules', admin: 'Admin' },
     login: {
@@ -292,6 +294,7 @@ const translations = {
       loading: 'يتحمّل…', retry: 'عاود المحاولة', cancel: 'إلغاء', edit: 'تعديل',
       back: '← رجوع', logout: 'خروج', admin: 'أدمين', myProfile: 'البروفايل متاعي',
       official: 'رسمية', private: 'خاصة', save: 'حفظ', error: 'صار خطأ',
+      switchToLight: 'بدّل للثيم الفاتح', switchToDark: 'بدّل للثيم الغامق',
     },
     nav: { predictions: 'التوقعات', results: 'النتائج', standings: 'الترتيب', leagues: 'ليڨاتي', profile: 'البروفايل', rules: 'القوانين', admin: 'أدمين' },
     login: {

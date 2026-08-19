@@ -173,7 +173,23 @@ function GoogleButton({ onCredential, onError, cancelledMsg }) {
   return <div ref={ref} style={{ display: 'flex', justifyContent: 'center', margin: '14px 0' }} />;
 }
 
-function LoginPage({ onLogin }) {
+function ThemeToggle({ theme, onToggle }) {
+  const { t } = useLanguage();
+  const isLight = theme === 'light';
+  return (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={onToggle}
+      aria-label={isLight ? t('common.switchToDark') : t('common.switchToLight')}
+      title={isLight ? t('common.switchToDark') : t('common.switchToLight')}
+    >
+      <i className={`fa-solid ${isLight ? 'fa-moon' : 'fa-sun'}`} />
+    </button>
+  );
+}
+
+function LoginPage({ onLogin, theme, onToggleTheme }) {
   const { t } = useLanguage();
   const [mode, setMode] = useState('login'); // login | register | verify
   const [email, setEmail] = useState('');
@@ -267,7 +283,6 @@ function LoginPage({ onLogin }) {
 
   return (
     <div className="auth-wrap">
-      <div className="auth-lang"><LanguageSwitcher /></div>
       <div className="auth-hero">
         <div className="auth-pitch">
           <span className="pitch-badge"><i className="fa-solid fa-star" /> {t('login.badge')}</span>
@@ -297,6 +312,10 @@ function LoginPage({ onLogin }) {
         </div>
 
         <div className="auth-card">
+        <div className="auth-card-controls">
+          <LanguageSwitcher />
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
         <div className="auth-brand">
           <img src={logo} alt="Pronos Tunisie" />
           <strong>PRONOS <em>TUNISIE</em></strong>
@@ -1194,6 +1213,16 @@ function AppShell() {
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState('predictions');
   const [league, setLeague] = useState(null); // {id, name, invite_code, ...}
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -1229,7 +1258,9 @@ function AppShell() {
 
   const openLeague = (l) => { setLeague(l); selectTab('predictions'); };
 
-  if (!user) return <LoginPage onLogin={setUser} />;
+  const toggleTheme = () => setTheme((currentTheme) => currentTheme === 'light' ? 'dark' : 'light');
+
+  if (!user) return <LoginPage onLogin={setUser} theme={theme} onToggleTheme={toggleTheme} />;
 
   return (
     <div className="app-shell">
@@ -1255,7 +1286,8 @@ function AppShell() {
           )}
         </nav>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="header-controls">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <LanguageSwitcher />
           <button className="profile-mini" onClick={() => selectTab('profile')} aria-label={t('common.myProfile')} title={t('common.myProfile')}>
             <span className="avatar">{initials(user.username)}</span>
