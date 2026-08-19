@@ -624,8 +624,9 @@ function ResultsPage({ league }) {
 
   const findPrediction = (matchId) => predictions?.find((p) => p.match_id === matchId);
 
-  const finished = (allMatches || []).filter((m) => m.status === 'finished');
-  const visible = filter === 'mine' ? finished.filter((m) => findPrediction(m.id)) : finished;
+  const visible = filter === 'mine'
+    ? (allMatches || []).filter((m) => findPrediction(m.id))
+    : (allMatches || []);
 
   const groups = {};
   visible.forEach((m) => {
@@ -659,7 +660,7 @@ function ResultsPage({ league }) {
           return (
             <div className="result-day" key={dayKey}>
               <div className="day-heading">
-                <div><b>{title}</b>{sub && <span>{sub}</span>}<span>{t('results.matchesFinished', dayMatches.length)}</span></div>
+                <div><b>{title}</b>{sub && <span>{sub}</span>}<span>{t('results.matchesListed', dayMatches.length)}</span></div>
                 <span className={`day-score${dayScore === 0 ? ' muted' : ''}`}>{dayScore > 0 ? `+${dayScore} pts` : '0 pt'}</span>
               </div>
               <div className="result-list">
@@ -669,7 +670,9 @@ function ResultsPage({ league }) {
                     <div className="result-row" key={m.id}>
                       <span className="result-time">{new Date(m.kickoff_time).toLocaleTimeString(LOCALE_MAP[lang], { hour: '2-digit', minute: '2-digit' })}</span>
                       <div className="result-team"><b>{m.home_team}</b></div>
-                      <strong className="final-score">{m.home_goals} — {m.away_goals}</strong>
+                      <strong className={`final-score${m.status !== 'finished' ? ' pending' : ''}`}>
+                        {m.status === 'finished' ? `${m.home_goals} — ${m.away_goals}` : t('results.notFinished')}
+                      </strong>
                       <div className="result-team away"><b>{m.away_team}</b></div>
                       {pred ? (
                         pred.points_earned > 0 ? (
@@ -701,7 +704,7 @@ function StandingsPage({ league, user }) {
   const { t } = useLanguage();
   const { data: standings, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['leaderboard', league?.id],
-    queryFn: async () => (await api.get(`/leagues/${league.id}/standings`)).data,
+    queryFn: async () => (await api.get(`/leagues/${league.id}/leaderboard`)).data,
     enabled: !!league,
   });
 
@@ -767,7 +770,7 @@ function LeagueCard({ league, user, onOpen }) {
   const { t } = useLanguage();
   const { data: standings } = useQuery({
     queryKey: ['leaderboard', league.id],
-    queryFn: async () => (await api.get(`/leagues/${league.id}/standings`)).data,
+    queryFn: async () => (await api.get(`/leagues/${league.id}/leaderboard`)).data,
   });
   const idx = standings?.findIndex((s) => s.user_id === user.id);
   const rankLabel = standings && idx !== undefined && idx >= 0 ? `${idx + 1}e` : '—';

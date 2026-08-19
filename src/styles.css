@@ -179,6 +179,7 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
 .prediction-result.correct { background: rgba(66,201,138,.1); color: var(--green); }
 .prediction-result.exact { background: rgba(216,167,44,.12); color: var(--gold); }
 .prediction-result.miss { background: rgba(239,91,100,.1); color: var(--danger); }
+.final-score.pending { color: var(--muted); font-size: 9px; white-space: nowrap; }
 
 .dark-select { color: white; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 10px; }
 .leader-card { display: flex; align-items: center; gap: 14px; padding: 17px; margin-bottom: 12px; border-radius: 15px; background: linear-gradient(110deg, rgba(216,167,44,.12), var(--surface)); border: 1px solid rgba(216,167,44,.2); }

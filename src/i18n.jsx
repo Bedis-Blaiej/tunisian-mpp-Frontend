@@ -80,8 +80,10 @@ const translations = {
       all: 'Tout', mine: 'Mes pronos',
       loading: 'Chargement des résultats…',
       noResults: 'Aucun résultat pour le moment.',
+      notFinished: 'Pas terminé',
       today: "Aujourd'hui", yesterday: 'Hier',
       matchesFinished: (n) => `${n} match${n > 1 ? 's' : ''} terminé${n > 1 ? 's' : ''}`,
+      matchesListed: (n) => `${n} match${n > 1 ? 's' : ''}`,
     },
     standings: {
       preparingLeague: 'Préparation de ta ligue…',
@@ -215,8 +217,10 @@ const translations = {
       all: 'All', mine: 'My predictions',
       loading: 'Loading results…',
       noResults: 'No results yet.',
+      notFinished: 'Not finished',
       today: 'Today', yesterday: 'Yesterday',
       matchesFinished: (n) => `${n} match${n > 1 ? 'es' : ''} finished`,
+      matchesListed: (n) => `${n} match${n > 1 ? 'es' : ''}`,
     },
     standings: {
       preparingLeague: 'Setting up your league…',
@@ -350,8 +354,10 @@ const translations = {
       all: 'الكل', mine: 'توقعاتي',
       loading: 'تتحمّل النتائج…',
       noResults: 'ما فما حتى نتيجة لتوّة.',
+      notFinished: 'ما خلصش',
       today: 'اليوم', yesterday: 'البارح',
       matchesFinished: (n) => `${n} ماتش خلص`,
+      matchesListed: (n) => `${n} ماتش`,
     },
     standings: {
       preparingLeague: 'نحضرو الليڨ متاعك…',
