@@ -1212,12 +1212,13 @@ function AppShell() {
   const { t } = useLanguage();
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState('predictions');
-  const [league, setLeague] = useState(null); // {id, name, invite_code, ...}
+  const [league, setLeague] = useState(null);
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -1229,9 +1230,6 @@ function AppShell() {
     if (stored) { try { setUser(JSON.parse(stored)); } catch { /* ignore */ } }
   }, []);
 
-  // Every account is auto-enrolled in the "Tunisian League" on the backend,
-  // so pick it as the active league right after login — Mes pronos works
-  // immediately, no need to create or join anything first.
   useEffect(() => {
     if (!user || league) return;
     let cancelled = false;
@@ -1253,6 +1251,7 @@ function AppShell() {
 
   const selectTab = (nextTab) => {
     setTab(nextTab);
+    setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1265,44 +1264,119 @@ function AppShell() {
   return (
     <div className="app-shell">
       <header className="topbar">
+        {/* BRAND (Left) */}
         <a className="brand" href="#" onClick={(e) => { e.preventDefault(); selectTab('predictions'); }}>
           <img src={logo} alt="Pronos Tunisie" />
-          <span className="brand-copy">
+          <div className="brand-copy">
             <strong>PRONOS <em>TUNISIE</em></strong>
             <small>{t('login.brandTag')}</small>
-          </span>
+          </div>
         </a>
 
+        {/* MOBILE: Hamburger Menu */}
+        <button
+          className={`hamburger ${mobileMenuOpen ? 'active' : ''}`}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Menu"
+          aria-expanded={mobileMenuOpen}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        {/* MAIN NAVIGATION (Desktop) */}
         <nav className="main-nav" aria-label="Navigation principale">
           {TAB_DEFS.map((d) => (
-            <button type="button" key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => selectTab(d.key)} aria-current={tab === d.key ? 'page' : undefined}>
-              <i className={`fa-solid ${d.icon}`} /><span>{t(`nav.${d.key}`)}</span>
+            <button
+              type="button"
+              key={d.key}
+              className={`nav-item${tab === d.key ? ' active' : ''}`}
+              onClick={() => selectTab(d.key)}
+              aria-current={tab === d.key ? 'page' : undefined}
+              title={t(`nav.${d.key}`)}
+            >
+              <i className={`fa-solid ${d.icon}`} />
+              <span>{t(`nav.${d.key}`)}</span>
             </button>
           ))}
           {user.is_admin && (
-            <button type="button" className={`nav-item${tab === 'admin' ? ' active' : ''}`} onClick={() => selectTab('admin')} aria-current={tab === 'admin' ? 'page' : undefined}>
-              <i className="fa-solid fa-shield-halved" /><span>{t('nav.admin')}</span>
+            <button
+              type="button"
+              className={`nav-item${tab === 'admin' ? ' active' : ''}`}
+              onClick={() => selectTab('admin')}
+              aria-current={tab === 'admin' ? 'page' : undefined}
+              title={t('nav.admin')}
+            >
+              <i className="fa-solid fa-shield-halved" />
+              <span>{t('nav.admin')}</span>
             </button>
           )}
         </nav>
 
+        {/* HEADER CONTROLS (Right) */}
         <div className="header-controls">
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
-          <LanguageSwitcher />
-          <button className="profile-mini" onClick={() => selectTab('profile')} aria-label={t('common.myProfile')} title={t('common.myProfile')}>
-            <span className="avatar">{initials(user.username)}</span>
-            <span className="online-dot" />
-          </button>
-          <button className="logout-btn" onClick={handleLogout} aria-label={t('common.logout')} title={t('common.logout')}>
-            <i className="fa-solid fa-right-from-bracket" />
-          </button>
+          <div className="control-group">
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          </div>
+
+          <div className="control-group">
+            <LanguageSwitcher />
+          </div>
+
+          <div className="control-group">
+            <button
+              className="profile-mini"
+              onClick={() => selectTab('profile')}
+              aria-label={t('common.myProfile')}
+              title={t('common.myProfile')}
+            >
+              <span className="avatar">{initials(user.username)}</span>
+              <span className="online-dot" />
+            </button>
+            <button
+              className="logout-btn"
+              onClick={handleLogout}
+              aria-label={t('common.logout')}
+              title={t('common.logout')}
+            >
+              <i className="fa-solid fa-right-from-bracket" />
+            </button>
+          </div>
         </div>
       </header>
 
+      {/* MOBILE MENU DROPDOWN */}
+      <nav className={`mobile-menu ${mobileMenuOpen ? 'active' : ''}`} aria-label="Navigation mobile">
+        {TAB_DEFS.map((d) => (
+          <button
+            type="button"
+            key={d.key}
+            className={`nav-item${tab === d.key ? ' active' : ''}`}
+            onClick={() => selectTab(d.key)}
+            aria-current={tab === d.key ? 'page' : undefined}
+          >
+            <i className={`fa-solid ${d.icon}`} />
+            <span>{t(`nav.${d.key}`)}</span>
+          </button>
+        ))}
+        {user.is_admin && (
+          <button
+            type="button"
+            className={`nav-item${tab === 'admin' ? ' active' : ''}`}
+            onClick={() => selectTab('admin')}
+            aria-current={tab === 'admin' ? 'page' : undefined}
+          >
+            <i className="fa-solid fa-shield-halved" />
+            <span>{t('nav.admin')}</span>
+          </button>
+        )}
+      </nav>
+
       <main>
         {league && tab !== 'leagues' && tab !== 'profile' && tab !== 'admin' && tab !== 'rules' && (
-          <p style={{ color: 'var(--muted)', fontSize: 10, marginBottom: -14 }}>
-            {t('activeLeague')} : <b style={{ color: 'white' }}>{league.name}</b> ·{' '}
+          <p className="active-league-badge">
+            {t('activeLeague')} : <b>{league.name}</b> ·{' '}
             <button className="link-btn" onClick={() => selectTab('leagues')}>{t('change')}</button>
           </p>
         )}
@@ -1321,7 +1395,7 @@ function AppShell() {
         <span>{t('footer.copyright')}</span>
       </footer>
 
-      <nav className={`mobile-nav${user.is_admin ? ' with-admin' : ''}`} aria-label="Navigation mobile">
+      <nav className={`mobile-nav${user.is_admin ? ' with-admin' : ''}`} aria-label="Navigation mobile (legacy)">
         {TAB_DEFS.map((d) => (
           <button type="button" key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => selectTab(d.key)} aria-current={tab === d.key ? 'page' : undefined}>
             <i className={`fa-solid ${d.icon}`} /><span>{t(`nav.${d.key}`)}</span>
