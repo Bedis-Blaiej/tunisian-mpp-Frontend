@@ -647,13 +647,14 @@ function ResultsPage({ league }) {
     ? (allMatches || []).filter((m) => findPrediction(m.id))
     : (allMatches || []);
 
+  // Group by gameweek and sort ascending (1, 2, 3...)
   const groups = {};
   visible.forEach((m) => {
-    const dayKey = new Date(m.kickoff_time).toDateString();
-    if (!groups[dayKey]) groups[dayKey] = [];
-    groups[dayKey].push(m);
+    const gwKey = m.gameweek || 0;
+    if (!groups[gwKey]) groups[gwKey] = [];
+    groups[gwKey].push(m);
   });
-  const sortedDays = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+  const sortedGameweeks = Object.keys(groups).map(Number).sort((a, b) => a - b);
 
   return (
     <section className="page active">
@@ -672,37 +673,44 @@ function ResultsPage({ league }) {
       <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel={t('results.loading')} />
 
       {!isLoading && !isError && (
-        sortedDays.length > 0 ? sortedDays.map((dayKey) => {
-          const dayMatches = groups[dayKey].sort((a, b) => new Date(a.kickoff_time) - new Date(b.kickoff_time));
-          const { title, sub } = formatDayLabel(dayKey, lang, t);
-          const dayScore = dayMatches.reduce((s, m) => s + (findPrediction(m.id)?.points_earned || 0), 0);
+        sortedGameweeks.length > 0 ? sortedGameweeks.map((gw) => {
+          const gwMatches = groups[gw].sort((a, b) => new Date(a.kickoff_time) - new Date(b.kickoff_time));
+          const gwScore = gwMatches.reduce((s, m) => s + (findPrediction(m.id)?.points_earned || 0), 0);
           return (
-            <div className="result-day" key={dayKey}>
+            <div className="result-day" key={gw}>
               <div className="day-heading">
-                <div><b>{title}</b>{sub && <span>{sub}</span>}<span>{t('results.matchesListed', dayMatches.length)}</span></div>
-                <span className={`day-score${dayScore === 0 ? ' muted' : ''}`}>{dayScore > 0 ? `+${dayScore} pts` : '0 pt'}</span>
+                <div><b>{t('predictions.journee', gw)}</b><span>{t('results.matchesListed', gwMatches.length)}</span></div>
+                <span className={`day-score${gwScore === 0 ? ' muted' : ''}`}>{gwScore > 0 ? `+${gwScore} pts` : '0 pt'}</span>
               </div>
               <div className="result-list">
-                {dayMatches.map((m) => {
+                {gwMatches.map((m) => {
                   const pred = findPrediction(m.id);
                   return (
-                    <div className="result-row" key={m.id}>
-                      <span className="result-time">{new Date(m.kickoff_time).toLocaleTimeString(LOCALE_MAP[lang], { hour: '2-digit', minute: '2-digit' })}</span>
-                      <div className="result-team"><b>{m.home_team}</b></div>
-                      <strong className={`final-score${m.status !== 'finished' ? ' pending' : ''}`}>
-                        {m.status === 'finished' ? `${m.home_goals} — ${m.away_goals}` : t('results.notFinished')}
-                      </strong>
-                      <div className="result-team away"><b>{m.away_team}</b></div>
-                      {pred ? (
-                        pred.points_earned > 0 ? (
-                          <span className={`prediction-result ${pred.is_exact_match ? 'exact' : 'correct'}`}>
-                            <i className={`fa-solid ${pred.is_exact_match ? 'fa-bullseye' : 'fa-check'}`} /> +{pred.points_earned}
-                          </span>
+                    <div key={m.id}>
+                      <div className="result-row">
+                        <span className="result-time">{new Date(m.kickoff_time).toLocaleTimeString(LOCALE_MAP[lang], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <div className="result-team"><b>{m.home_team}</b></div>
+                        <strong className={`final-score${m.status !== 'finished' ? ' pending' : ''}`}>
+                          {m.status === 'finished' ? `${m.home_goals} — ${m.away_goals}` : t('results.notFinished')}
+                        </strong>
+                        <div className="result-team away"><b>{m.away_team}</b></div>
+                        {pred ? (
+                          pred.points_earned > 0 ? (
+                            <span className={`prediction-result ${pred.is_exact_match ? 'exact' : 'correct'}`}>
+                              <i className={`fa-solid ${pred.is_exact_match ? 'fa-bullseye' : 'fa-check'}`} /> +{pred.points_earned}
+                            </span>
+                          ) : (
+                            <span className="prediction-result miss"><i className="fa-solid fa-xmark" /> 0</span>
+                          )
                         ) : (
-                          <span className="prediction-result miss"><i className="fa-solid fa-xmark" /> 0</span>
-                        )
-                      ) : (
-                        <span className="prediction-result miss" style={{ opacity: .4 }}>—</span>
+                          <span className="prediction-result miss" style={{ opacity: .4 }}>—</span>
+                        )}
+                      </div>
+                      {pred && m.status === 'finished' && (
+                        <div className="prediction-detail">
+                          <div className="pred-label">{t('matchCard.yourScore')}:</div>
+                          <div className="pred-score">{pred.predicted_home_goals} — {pred.predicted_away_goals}</div>
+                        </div>
                       )}
                     </div>
                   );

@@ -193,6 +193,10 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
 .result-list { border: 1px solid var(--border); border-radius: 13px; overflow: hidden; }
 .result-row { min-height: 72px; display: grid; grid-template-columns: 55px 1fr 80px 1fr 70px; align-items: center; gap: 10px; padding: 10px 15px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .result-row:last-child { border-bottom: 0; }
+
+.prediction-detail { padding: 8px 15px 12px; background: rgba(255, 215, 0, 0.05); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.pred-label { color: var(--text-muted); font-weight: 500; }
+.pred-score { font-weight: 600; color: var(--accent); }
 .result-time { color: var(--muted); font-size: 10px; }
 .result-team b { font-size: 11px; }
 .result-team small { display: block; color: var(--muted); font-size: 8px; margin-top: 2px; }
@@ -324,6 +328,7 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
   .result-row { grid-template-columns: 40px 1fr 62px 1fr 52px; padding: 9px; gap: 5px; }
   .result-team b { font-size: 9px; }
   .prediction-result { padding: 5px; }
+  .prediction-detail { padding: 8px 10px; font-size: 12px; }
   .join-box { grid-template-columns: 42px 1fr; }
   .join-input { grid-column: 1 / -1; }
   .join-input input { flex: 1; width: auto; }
@@ -430,6 +435,7 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
 :root[data-theme="light"] .main-nav .nav-item.active { color: var(--text); }
 :root[data-theme="light"] .main-nav .nav-item:hover { color: var(--text); }
 :root[data-theme="light"] .auth-switch:hover { color: var(--text); }
+:root[data-theme="light"] .prediction-detail { background: rgba(255, 215, 0, 0.08); }
 
 /* X2 toggle chip */
 .x2-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; }
