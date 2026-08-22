@@ -93,6 +93,7 @@ const translations = {
       itsYou: "C'est toi 👑", currentLeader: 'Leader actuel',
       points: 'points', rank: 'Rang', player: 'Joueur', pointsCol: 'Points', me: 'Moi',
       nobodyYet: "Personne n'a encore de points dans cette ligue.",
+      predictions: 'Ses pronos', noPredictions: 'Aucun pronostic sur les matchs terminés.',
     },
     leagues: {
       eyebrow: 'Communauté', title: 'Mes ligues.', sub: 'Crée une ligue privée ou rejoins celle de tes amis.',
@@ -231,6 +232,7 @@ const translations = {
       itsYou: "That's you 👑", currentLeader: 'Current leader',
       points: 'points', rank: 'Rank', player: 'Player', pointsCol: 'Points', me: 'Me',
       nobodyYet: 'Nobody has scored any points in this league yet.',
+      predictions: 'Their predictions', noPredictions: 'No predictions on finished matches.',
     },
     leagues: {
       eyebrow: 'Community', title: 'My leagues.', sub: "Create a private league or join a friend's.",
@@ -369,6 +371,7 @@ const translations = {
       itsYou: 'هذا إنتي 👑', currentLeader: 'الأول توّا',
       points: 'نقطة', rank: 'الرتبة', player: 'اللاعب', pointsCol: 'النقاط', me: 'أنا',
       nobodyYet: 'حتى حد ما عندو نقاط في هاذي الليڨ لتوّة.',
+      predictions: 'نتوقعاتو', noPredictions: 'ما فما نتوقعات على الماتشات الخلصت.',
     },
     leagues: {
       eyebrow: 'الجماعة', title: 'ليڨاتي.', sub: 'اعمل ليڨ خاصة بيك ولا انضم لواحدة متاع صاحبك.',

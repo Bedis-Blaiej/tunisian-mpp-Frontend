@@ -728,11 +728,18 @@ function ResultsPage({ league }) {
 
 // ============ CLASSEMENTS ============
 function StandingsPage({ league, user }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const [selectedUser, setSelectedUser] = useState(null);
   const { data: standings, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['leaderboard', league?.id],
     queryFn: async () => (await api.get(`/leagues/${league.id}/leaderboard`)).data,
     enabled: !!league,
+  });
+
+  const { data: selectedUserPredictions, isLoading: predLoading } = useQuery({
+    queryKey: ['user-predictions', selectedUser?.user_id],
+    queryFn: async () => selectedUser ? (await api.get(`/users/${selectedUser.user_id}/predictions/finished`)).data : [],
+    enabled: !!selectedUser,
   });
 
   if (!league) {
@@ -757,7 +764,7 @@ function StandingsPage({ league, user }) {
       {!isLoading && !isError && standings && standings.length > 0 && (
         <>
           {leader && (
-            <div className="leader-card">
+            <div className="leader-card" style={{ cursor: leader.user_id !== user.id ? 'pointer' : 'default' }} onClick={() => leader.user_id !== user.id && setSelectedUser(leader)}>
               <div className="leader-position">1</div>
               <div className="leader-avatar">{initials(leader.username)}</div>
               <div className="leader-info"><b>{leader.username}</b><span>{leader.user_id === user.id ? t('standings.itsYou') : t('standings.currentLeader')}</span></div>
@@ -770,7 +777,7 @@ function StandingsPage({ league, user }) {
             <div className="table-card">
               <div className="table-head cols-3"><span>{t('standings.rank')}</span><span>{t('standings.player')}</span><span>{t('standings.pointsCol')}</span></div>
               {rest.map((entry) => (
-                <div className={`standing-row cols-3${entry.user_id === user.id ? ' current' : ''}`} key={entry.user_id}>
+                <div className={`standing-row cols-3${entry.user_id === user.id ? ' current' : ''}`} key={entry.user_id} style={{ cursor: entry.user_id !== user.id ? 'pointer' : 'default' }} onClick={() => entry.user_id !== user.id && setSelectedUser(entry)}>
                   <span className="rank">{entry.rank}</span>
                   <div className="player-cell">
                     <span className="avatar small">{initials(entry.username)}</span>
@@ -787,6 +794,48 @@ function StandingsPage({ league, user }) {
 
       {!isLoading && !isError && (!standings || standings.length === 0) && (
         <div className="empty-state">{t('standings.nobodyYet')}</div>
+      )}
+
+      {selectedUser && (
+        <div className="modal-overlay" onClick={() => setSelectedUser(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h2>{selectedUser.username}</h2>
+                <p>{t('standings.predictions')}</p>
+              </div>
+              <button className="modal-close" onClick={() => setSelectedUser(null)}>✕</button>
+            </div>
+
+            {predLoading && <StateBox loading loadingLabel={t('common.loading')} />}
+
+            {!predLoading && selectedUserPredictions && selectedUserPredictions.length > 0 && (
+              <div className="user-predictions-list">
+                {selectedUserPredictions.map((pred) => (
+                  <div className="pred-item" key={pred.id}>
+                    <div className="pred-gw">J.{pred.gameweek}</div>
+                    <div className="pred-match">
+                      <span className="team">{pred.home_team}</span>
+                      <span className="score-actual">{pred.actual_home_goals} — {pred.actual_away_goals}</span>
+                      <span className="team away">{pred.away_team}</span>
+                    </div>
+                    <div className="pred-prediction">
+                      <span className="label">{t('matchCard.yourScore')}:</span>
+                      <span className="score">{pred.predicted_home_goals} — {pred.predicted_away_goals}</span>
+                    </div>
+                    <div className={`pred-points${pred.points_earned > 0 ? ' positive' : ''}`}>
+                      {pred.points_earned > 0 ? `+${pred.points_earned}` : '0'} {pred.is_exact_match && pred.points_earned > 0 ? '🎯' : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!predLoading && (!selectedUserPredictions || selectedUserPredictions.length === 0) && (
+              <div className="empty-state">{t('standings.noPredictions')}</div>
+            )}
+          </div>
+        </div>
       )}
     </section>
   );
