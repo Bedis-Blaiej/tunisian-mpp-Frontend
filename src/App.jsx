@@ -647,15 +647,13 @@ function ResultsPage({ league }) {
     ? (allMatches || []).filter((m) => findPrediction(m.id))
     : (allMatches || []);
 
-  // The competition is read in its natural order: matchday 1, then 2, then 3.
-  // A matchday may contain fixtures on more than one calendar date.
   const groups = {};
   visible.forEach((m) => {
-    const gameweek = Number.isFinite(Number(m.gameweek)) ? Number(m.gameweek) : 0;
-    if (!groups[gameweek]) groups[gameweek] = [];
-    groups[gameweek].push(m);
+    const dayKey = new Date(m.kickoff_time).toDateString();
+    if (!groups[dayKey]) groups[dayKey] = [];
+    groups[dayKey].push(m);
   });
-  const sortedGameweeks = Object.keys(groups).map(Number).sort((a, b) => a - b);
+  const sortedDays = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
 
   return (
     <section className="page active">
@@ -674,43 +672,28 @@ function ResultsPage({ league }) {
       <StateBox loading={isLoading} error={isError ? error : null} onRetry={refetch} loadingLabel={t('results.loading')} />
 
       {!isLoading && !isError && (
-        sortedGameweeks.length > 0 ? sortedGameweeks.map((gameweek) => {
-          const gameweekMatches = groups[gameweek].sort((a, b) => new Date(a.kickoff_time) - new Date(b.kickoff_time));
-          const firstMatch = gameweekMatches[0];
-          const { title: dateLabel } = formatDayLabel(firstMatch.kickoff_time, lang, t);
-          const gameweekScore = gameweekMatches.reduce((sum, m) => sum + (findPrediction(m.id)?.points_earned || 0), 0);
-
+        sortedDays.length > 0 ? sortedDays.map((dayKey) => {
+          const dayMatches = groups[dayKey].sort((a, b) => new Date(a.kickoff_time) - new Date(b.kickoff_time));
+          const { title, sub } = formatDayLabel(dayKey, lang, t);
+          const dayScore = dayMatches.reduce((s, m) => s + (findPrediction(m.id)?.points_earned || 0), 0);
           return (
-            <div className="result-day" key={gameweek}>
+            <div className="result-day" key={dayKey}>
               <div className="day-heading">
-                <div>
-                  <b>{t('predictions.journee', gameweek)}</b>
-                  <span>{dateLabel}</span>
-                  <span>{t('results.matchesListed', gameweekMatches.length)}</span>
-                </div>
-                <span className={`day-score${gameweekScore === 0 ? ' muted' : ''}`}>{gameweekScore > 0 ? `+${gameweekScore} pts` : '0 pt'}</span>
+                <div><b>{title}</b>{sub && <span>{sub}</span>}<span>{t('results.matchesListed', dayMatches.length)}</span></div>
+                <span className={`day-score${dayScore === 0 ? ' muted' : ''}`}>{dayScore > 0 ? `+${dayScore} pts` : '0 pt'}</span>
               </div>
               <div className="result-list">
-                {gameweekMatches.map((m) => {
+                {dayMatches.map((m) => {
                   const pred = findPrediction(m.id);
-                  const isFinished = m.status === 'finished';
                   return (
                     <div className="result-row" key={m.id}>
                       <span className="result-time">{new Date(m.kickoff_time).toLocaleTimeString(LOCALE_MAP[lang], { hour: '2-digit', minute: '2-digit' })}</span>
                       <div className="result-team"><b>{m.home_team}</b></div>
-                      <div className="result-score-stack">
-                        <strong className={`final-score${!isFinished ? ' pending' : ''}`}>
-                          {isFinished ? `${m.home_goals} — ${m.away_goals}` : t('results.notFinished')}
-                        </strong>
-                        {pred && (
-                          <span className="user-prediction">
-                            <small>{t('results.yourPrediction')}</small>
-                            <b>{pred.predicted_home_goals} — {pred.predicted_away_goals}</b>
-                          </span>
-                        )}
-                      </div>
+                      <strong className={`final-score${m.status !== 'finished' ? ' pending' : ''}`}>
+                        {m.status === 'finished' ? `${m.home_goals} — ${m.away_goals}` : t('results.notFinished')}
+                      </strong>
                       <div className="result-team away"><b>{m.away_team}</b></div>
-                      {pred && isFinished ? (
+                      {pred ? (
                         pred.points_earned > 0 ? (
                           <span className={`prediction-result ${pred.is_exact_match ? 'exact' : 'correct'}`}>
                             <i className={`fa-solid ${pred.is_exact_match ? 'fa-bullseye' : 'fa-check'}`} /> +{pred.points_earned}
@@ -719,7 +702,7 @@ function ResultsPage({ league }) {
                           <span className="prediction-result miss"><i className="fa-solid fa-xmark" /> 0</span>
                         )
                       ) : (
-                        <span className="prediction-result miss" style={{ opacity: pred ? .4 : .25 }}>—</span>
+                        <span className="prediction-result miss" style={{ opacity: .4 }}>—</span>
                       )}
                     </div>
                   );
@@ -1229,13 +1212,12 @@ function AppShell() {
   const { t } = useLanguage();
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState('predictions');
-  const [league, setLeague] = useState(null);
+  const [league, setLeague] = useState(null); // {id, name, invite_code, ...}
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -1247,6 +1229,9 @@ function AppShell() {
     if (stored) { try { setUser(JSON.parse(stored)); } catch { /* ignore */ } }
   }, []);
 
+  // Every account is auto-enrolled in the "Tunisian League" on the backend,
+  // so pick it as the active league right after login — Mes pronos works
+  // immediately, no need to create or join anything first.
   useEffect(() => {
     if (!user || league) return;
     let cancelled = false;
@@ -1268,7 +1253,6 @@ function AppShell() {
 
   const selectTab = (nextTab) => {
     setTab(nextTab);
-    setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1281,119 +1265,44 @@ function AppShell() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        {/* BRAND (Left) */}
         <a className="brand" href="#" onClick={(e) => { e.preventDefault(); selectTab('predictions'); }}>
           <img src={logo} alt="Pronos Tunisie" />
-          <div className="brand-copy">
+          <span className="brand-copy">
             <strong>PRONOS <em>TUNISIE</em></strong>
             <small>{t('login.brandTag')}</small>
-          </div>
+          </span>
         </a>
 
-        {/* MOBILE: Hamburger Menu */}
-        <button
-          className={`hamburger ${mobileMenuOpen ? 'active' : ''}`}
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Menu"
-          aria-expanded={mobileMenuOpen}
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-
-        {/* MAIN NAVIGATION (Desktop) */}
         <nav className="main-nav" aria-label="Navigation principale">
           {TAB_DEFS.map((d) => (
-            <button
-              type="button"
-              key={d.key}
-              className={`nav-item${tab === d.key ? ' active' : ''}`}
-              onClick={() => selectTab(d.key)}
-              aria-current={tab === d.key ? 'page' : undefined}
-              title={t(`nav.${d.key}`)}
-            >
-              <i className={`fa-solid ${d.icon}`} />
-              <span>{t(`nav.${d.key}`)}</span>
+            <button type="button" key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => selectTab(d.key)} aria-current={tab === d.key ? 'page' : undefined}>
+              <i className={`fa-solid ${d.icon}`} /><span>{t(`nav.${d.key}`)}</span>
             </button>
           ))}
           {user.is_admin && (
-            <button
-              type="button"
-              className={`nav-item${tab === 'admin' ? ' active' : ''}`}
-              onClick={() => selectTab('admin')}
-              aria-current={tab === 'admin' ? 'page' : undefined}
-              title={t('nav.admin')}
-            >
-              <i className="fa-solid fa-shield-halved" />
-              <span>{t('nav.admin')}</span>
+            <button type="button" className={`nav-item${tab === 'admin' ? ' active' : ''}`} onClick={() => selectTab('admin')} aria-current={tab === 'admin' ? 'page' : undefined}>
+              <i className="fa-solid fa-shield-halved" /><span>{t('nav.admin')}</span>
             </button>
           )}
         </nav>
 
-        {/* HEADER CONTROLS (Right) */}
         <div className="header-controls">
-          <div className="control-group">
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
-          </div>
-
-          <div className="control-group">
-            <LanguageSwitcher />
-          </div>
-
-          <div className="control-group">
-            <button
-              className="profile-mini"
-              onClick={() => selectTab('profile')}
-              aria-label={t('common.myProfile')}
-              title={t('common.myProfile')}
-            >
-              <span className="avatar">{initials(user.username)}</span>
-              <span className="online-dot" />
-            </button>
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-              aria-label={t('common.logout')}
-              title={t('common.logout')}
-            >
-              <i className="fa-solid fa-right-from-bracket" />
-            </button>
-          </div>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <LanguageSwitcher />
+          <button className="profile-mini" onClick={() => selectTab('profile')} aria-label={t('common.myProfile')} title={t('common.myProfile')}>
+            <span className="avatar">{initials(user.username)}</span>
+            <span className="online-dot" />
+          </button>
+          <button className="logout-btn" onClick={handleLogout} aria-label={t('common.logout')} title={t('common.logout')}>
+            <i className="fa-solid fa-right-from-bracket" />
+          </button>
         </div>
       </header>
 
-      {/* MOBILE MENU DROPDOWN */}
-      <nav className={`mobile-menu ${mobileMenuOpen ? 'active' : ''}`} aria-label="Navigation mobile">
-        {TAB_DEFS.map((d) => (
-          <button
-            type="button"
-            key={d.key}
-            className={`nav-item${tab === d.key ? ' active' : ''}`}
-            onClick={() => selectTab(d.key)}
-            aria-current={tab === d.key ? 'page' : undefined}
-          >
-            <i className={`fa-solid ${d.icon}`} />
-            <span>{t(`nav.${d.key}`)}</span>
-          </button>
-        ))}
-        {user.is_admin && (
-          <button
-            type="button"
-            className={`nav-item${tab === 'admin' ? ' active' : ''}`}
-            onClick={() => selectTab('admin')}
-            aria-current={tab === 'admin' ? 'page' : undefined}
-          >
-            <i className="fa-solid fa-shield-halved" />
-            <span>{t('nav.admin')}</span>
-          </button>
-        )}
-      </nav>
-
       <main>
         {league && tab !== 'leagues' && tab !== 'profile' && tab !== 'admin' && tab !== 'rules' && (
-          <p className="active-league-badge">
-            {t('activeLeague')} : <b>{league.name}</b> ·{' '}
+          <p style={{ color: 'var(--muted)', fontSize: 10, marginBottom: -14 }}>
+            {t('activeLeague')} : <b style={{ color: 'white' }}>{league.name}</b> ·{' '}
             <button className="link-btn" onClick={() => selectTab('leagues')}>{t('change')}</button>
           </p>
         )}
@@ -1412,7 +1321,7 @@ function AppShell() {
         <span>{t('footer.copyright')}</span>
       </footer>
 
-      <nav className={`mobile-nav${user.is_admin ? ' with-admin' : ''}`} aria-label="Navigation mobile (legacy)">
+      <nav className={`mobile-nav${user.is_admin ? ' with-admin' : ''}`} aria-label="Navigation mobile">
         {TAB_DEFS.map((d) => (
           <button type="button" key={d.key} className={`nav-item${tab === d.key ? ' active' : ''}`} onClick={() => selectTab(d.key)} aria-current={tab === d.key ? 'page' : undefined}>
             <i className={`fa-solid ${d.icon}`} /><span>{t(`nav.${d.key}`)}</span>
@@ -1439,4 +1348,3 @@ export default function App() {
     </LanguageProvider>
   );
 }
-
