@@ -191,6 +191,280 @@ function ThemeToggle({ theme, onToggle }) {
 
 function LoginPage({ onLogin, theme, onToggleTheme }) {
   const { t } = useLanguage();
+  const [mode, setMode] = useState('login'); // login | register | verify | forgot | reset
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [code, setCode] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const finishLogin = (data) => {
+    localStorage.setItem('token', data.access_token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    onLogin(data.user);
+  };
+
+  const handleGoogle = async (idToken) => {
+    setError(''); setLoading(true);
+    try {
+      const response = await api.post('/auth/google', { id_token: idToken });
+      finishLogin(response.data);
+    } catch (err) {
+      setError(errMsg(err, t('common.error')));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      finishLogin(response.data);
+    } catch (err) {
+      if (err?.response?.status === 403) {
+        setMode('verify');
+        try {
+          await api.post('/auth/resend-code', { email });
+          setInfo(t('login.codeJustSent'));
+        } catch (resendErr) {
+          setError(errMsg(resendErr, t('login.couldNotSendCode')));
+        }
+      } else {
+        setError(errMsg(err, t('common.error')));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      await api.post('/auth/register', { username, email, password });
+      setInfo(t('login.codeSentTo', email));
+      setMode('verify');
+    } catch (err) {
+      setError(errMsg(err, t('common.error')));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      const response = await api.post('/auth/verify-email', { email, code });
+      finishLogin(response.data);
+    } catch (err) {
+      setError(errMsg(err, t('common.error')));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError(''); setInfo('');
+    try {
+      await api.post('/auth/resend-code', { email });
+      setInfo(t('login.codeResent'));
+    } catch (err) {
+      setError(errMsg(err, t('common.error')));
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError(''); setInfo(''); setLoading(true);
+    try {
+      await api.post('/auth/forgot-password', { email });
+      setInfo(t('login.resetCodeSent'));
+      setMode('reset');
+    } catch (err) {
+      setError(errMsg(err, t('common.error')));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    
+    if (newPassword !== confirmPassword) {
+      setError(t('login.passwordsDoNotMatch'));
+      setLoading(false);
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setError(t('login.passwordTooShort'));
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      await api.post('/auth/reset-password', { email, reset_code: resetCode, new_password: newPassword });
+      setInfo(t('login.passwordResetSuccess'));
+      setTimeout(() => {
+        setMode('login');
+        setEmail('');
+        setPassword('');
+        setResetCode('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setError('');
+        setInfo('');
+      }, 2000);
+    } catch (err) {
+      setError(errMsg(err, t('common.error')));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-hero">
+        <div className="auth-pitch">
+          <span className="pitch-badge"><i className="fa-solid fa-star" /> {t('login.badge')}</span>
+          <h1>{t('login.headline1')}<br /><em>{t('login.headline2em')}</em>{t('login.headline2suffix')}</h1>
+          <p className="pitch-sub">{t('login.sub')}</p>
+
+          <div className="pitch-highlights">
+            <div><i className="fa-solid fa-bolt" /> {t('login.h1')}</div>
+            <div><i className="fa-solid fa-users" /> {t('login.h2')}</div>
+            <div><i className="fa-solid fa-bullseye" /> {t('login.h3')}</div>
+          </div>
+
+          <div className="hero-preview">
+            <p className="hp-label">{t('login.previewLabel')}</p>
+            <div className="hp-profile-head">
+              <span className="avatar-demo">BD</span><b>Bedis</b>
+            </div>
+            <div className="hp-stats">
+              <span>🏆 {t('login.previewRank')}</span> <strong>42 pts</strong>
+            </div>
+            <p className="hp-label" style={{ marginBottom: 0 }}>{t('login.previewPerf')}</p>
+          </div>
+        </div>
+
+        <div className="auth-card">
+        <div className="auth-card-controls">
+          <LanguageSwitcher />
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
+        <div className="auth-brand">
+          <img src={logo} alt="Pronos Tunisie" />
+          <strong>PRONOS <em>TUNISIE</em></strong>
+          <small>{t('login.brandTag')}</small>
+        </div>
+
+        {mode === 'verify' ? (
+          <form onSubmit={handleVerify}>
+            {info && <div className="auth-error" style={{ color: 'var(--green)', background: 'rgba(66,201,138,.1)' }}>{info}</div>}
+            <input className="auth-input" type="email" value={email} disabled style={{ opacity: .6 }} />
+            <input
+              className="auth-input" type="text" inputMode="numeric" maxLength={6}
+              placeholder={t('login.codePlaceholder')} value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required
+              style={{ textAlign: 'center', letterSpacing: '6px', fontSize: 18, fontWeight: 800 }}
+            />
+            {error && <div className="auth-error">{error}</div>}
+            <button type="submit" disabled={loading} className="primary-btn auth-submit">
+              {loading ? t('login.verifying') : t('login.verifyAndLogin')}
+            </button>
+            <button type="button" className="auth-switch" onClick={handleResend}>{t('login.resendCode')}</button>
+            <button type="button" className="auth-switch" onClick={() => { setMode('login'); setError(''); setInfo(''); }}>
+              {t('common.back')}
+            </button>
+          </form>
+        ) : mode === 'forgot' ? (
+          <form onSubmit={handleForgotPassword}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>{t('login.forgotPasswordDesc')}</p>
+            <input className="auth-input" type="email" placeholder={t('login.email')} value={email}
+              onChange={(e) => setEmail(e.target.value)} required />
+            {error && <div className="auth-error">{error}</div>}
+            {info && <div className="auth-error" style={{ color: 'var(--green)', background: 'rgba(66,201,138,.1)' }}>{info}</div>}
+            <button type="submit" disabled={loading} className="primary-btn auth-submit">
+              {loading ? t('login.pleaseWait') : t('login.sendResetCode')}
+            </button>
+            <button type="button" className="auth-switch" onClick={() => { setMode('login'); setError(''); setInfo(''); }}>
+              {t('common.back')}
+            </button>
+          </form>
+        ) : mode === 'reset' ? (
+          <form onSubmit={handleResetPassword}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>{t('login.enterResetCode')}</p>
+            <input className="auth-input" type="email" value={email} disabled style={{ opacity: .6 }} />
+            <input className="auth-input" type="text" inputMode="numeric" maxLength={6} placeholder={t('login.resetCodePlaceholder')}
+              value={resetCode} onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))} required
+              style={{ textAlign: 'center', letterSpacing: '6px', fontSize: 18, fontWeight: 800 }} />
+            <input className="auth-input" type="password" placeholder={t('login.newPassword')} value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)} required minLength={6} />
+            <input className="auth-input" type="password" placeholder={t('login.confirmPassword')} value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} />
+            {error && <div className="auth-error">{error}</div>}
+            {info && <div className="auth-error" style={{ color: 'var(--green)', background: 'rgba(66,201,138,.1)' }}>{info}</div>}
+            <button type="submit" disabled={loading} className="primary-btn auth-submit">
+              {loading ? t('login.pleaseWait') : t('login.resetPassword')}
+            </button>
+            <button type="button" className="auth-switch" onClick={() => { setMode('forgot'); setError(''); setInfo(''); setResetCode(''); setNewPassword(''); setConfirmPassword(''); }}>
+              {t('common.back')}
+            </button>
+          </form>
+        ) : (
+          <>
+            <form onSubmit={mode === 'register' ? handleRegister : handleLogin}>
+              {mode === 'register' && (
+                <input className="auth-input" type="text" placeholder={t('login.username')} value={username}
+                  onChange={(e) => setUsername(e.target.value)} required />
+              )}
+              <input className="auth-input" type="email" placeholder={t('login.email')} value={email}
+                onChange={(e) => setEmail(e.target.value)} required />
+              <input className="auth-input" type="password" placeholder={t('login.password')} value={password}
+                onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+
+              {error && <div className="auth-error">{error}</div>}
+
+              <button type="submit" disabled={loading} className="primary-btn auth-submit">
+                {loading ? t('login.pleaseWait') : mode === 'register' ? t('login.createAccount') : t('login.signIn')}
+              </button>
+            </form>
+
+            {mode === 'login' && (
+              <button type="button" className="auth-switch" style={{ fontSize: 10 }} onClick={() => { setMode('forgot'); setError(''); }}>
+                {t('login.forgotPassword')}
+              </button>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0 4px', color: 'var(--muted)', fontSize: 10 }}>
+              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              {t('login.or')}
+              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            </div>
+            <GoogleButton onCredential={handleGoogle} onError={setError} cancelledMsg={t('login.googleCancelled')} />
+
+            <button className="auth-switch" onClick={() => { setMode(mode === 'register' ? 'login' : 'register'); setError(''); }}>
+              {mode === 'register' ? t('login.alreadyAccount') : t('login.noAccount')}
+            </button>
+          </>
+        )}
+        </div>
+      </div>
+    </div>
+  );
+}
+) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState('login'); // login | register | verify
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
