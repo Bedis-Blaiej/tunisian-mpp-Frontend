@@ -63,7 +63,7 @@ const translations = {
       matchCount: (n) => `${n} match${n > 1 ? 's' : ''}`,
     },
     matchCard: {
-      home: 'Domicile', away: 'Extérieur', yourScore: 'Ton score', locked: 'Verrouillé',
+      home: 'Domicile', away: 'Extérieur', yourScore: 'Ta prédiction', locked: 'Verrouillé',
       x2Active: '×2 activé', activeWord: 'activé', doubleTitle: (m) => `×2 déjà utilisé sur ${m}`, doubleHint: 'Doubler les points de ce match',
       x2Used: (m) => `×2 déjà utilisé sur ${m}`,
       saving: 'Enregistrement…', saved: '✓ Enregistré',

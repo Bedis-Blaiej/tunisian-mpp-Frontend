@@ -203,7 +203,7 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
 .result-team.away { text-align: right; }
 .final-score { text-align: center; font-family: "Barlow Condensed"; font-size: 23px; }
 .score-column { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.user-prediction-badge { font-size: 10px; color: var(--accent); font-weight: 600; background: rgba(255,215,0,0.08); padding: 4px 8px; border-radius: 5px; }
+.user-prediction-badge { font-size: 12px; color: var(--accent); font-weight: 600; background: rgba(255,215,0,0.08); padding: 8px 12px; border-radius: 6px; letter-spacing: 0.3px; line-height: 1.4; }
 .prediction-result { justify-self: end; padding: 6px 8px; border-radius: 7px; font-size: 9px; font-weight: 900; }
 .prediction-result.correct { background: rgba(66,201,138,.1); color: var(--green); }
 .prediction-result.exact { background: rgba(216,167,44,.12); color: var(--gold); }
@@ -331,8 +331,8 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
   .deadline { align-self: flex-start; }
   .result-row { grid-template-columns: 40px 1fr 62px 1fr 52px; padding: 9px; gap: 5px; }
   .result-team b { font-size: 9px; }
-  .score-column { gap: 2px; }
-  .user-prediction-badge { font-size: 9px; padding: 3px 6px; }
+  .score-column { gap: 4px; }
+  .user-prediction-badge { font-size: 11px; padding: 6px 10px; }
   .prediction-result { padding: 5px; }
   .prediction-detail { padding: 8px 10px; font-size: 12px; }
   .pred-item { grid-template-columns: 40px 1fr 100px 50px; gap: 8px; padding: 10px; font-size: 10px; }
