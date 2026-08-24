@@ -9,7 +9,7 @@ import React, { useState, useEffect, useRef, useContext, createContext } from 'r
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import logo from './assets/logo.png';
-import { LanguageProvider, LanguageSwitcher, useLanguage } from './i18n';
+import { LanguageProvider, useLanguage } from './i18n';
 import './styles.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -359,7 +359,6 @@ function LoginPage({ onLogin, theme, onToggleTheme }) {
 
         <div className="auth-card">
         <div className="auth-card-controls">
-          <LanguageSwitcher />
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
         <div className="auth-brand">
@@ -774,9 +773,14 @@ function ResultsPage({ league }) {
                       <div className="result-row">
                         <span className="result-time">{new Date(m.kickoff_time).toLocaleTimeString(LOCALE_MAP[lang], { hour: '2-digit', minute: '2-digit' })}</span>
                         <div className="result-team"><b>{m.home_team}</b></div>
-                        <strong className={`final-score${m.status !== 'finished' ? ' pending' : ''}`}>
-                          {m.status === 'finished' ? `${m.home_goals} — ${m.away_goals}` : t('results.notFinished')}
-                        </strong>
+                        <div className="score-column">
+                          <strong className={`final-score${m.status !== 'finished' ? ' pending' : ''}`}>
+                            {m.status === 'finished' ? `${m.home_goals} — ${m.away_goals}` : t('results.notFinished')}
+                          </strong>
+                          {pred && m.status === 'finished' && (
+                            <div className="user-prediction-badge">{t('matchCard.yourScore')}: {pred.predicted_home_goals}—{pred.predicted_away_goals}</div>
+                          )}
+                        </div>
                         <div className="result-team away"><b>{m.away_team}</b></div>
                         {pred ? (
                           pred.points_earned > 0 ? (
@@ -790,12 +794,6 @@ function ResultsPage({ league }) {
                           <span className="prediction-result miss" style={{ opacity: .4 }}>—</span>
                         )}
                       </div>
-                      {pred && m.status === 'finished' && (
-                        <div className="prediction-detail">
-                          <div className="pred-label">{t('matchCard.yourScore')}:</div>
-                          <div className="pred-score">{pred.predicted_home_goals} — {pred.predicted_away_goals}</div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -860,17 +858,25 @@ function StandingsPage({ league, user }) {
           {rest.length > 0 && (
             <div className="table-card">
               <div className="table-head cols-3"><span>{t('standings.rank')}</span><span>{t('standings.player')}</span><span>{t('standings.pointsCol')}</span></div>
-              {rest.map((entry) => (
-                <div className={`standing-row cols-3${entry.user_id === user.id ? ' current' : ''}`} key={entry.user_id} style={{ cursor: entry.user_id !== user.id ? 'pointer' : 'default' }} onClick={() => entry.user_id !== user.id && setSelectedUser(entry)}>
-                  <span className="rank">{entry.rank}</span>
-                  <div className="player-cell">
-                    <span className="avatar small">{initials(entry.username)}</span>
-                    <b>{entry.username}</b>
-                    {entry.user_id === user.id && <em>{t('standings.me')}</em>}
+              {rest.map((entry, idx) => {
+                const getMedal = () => {
+                  if (entry.rank === 2) return '🥈';
+                  if (entry.rank === 3) return '🥉';
+                  return null;
+                };
+                const medal = getMedal();
+                return (
+                  <div className={`standing-row cols-3${entry.user_id === user.id ? ' current' : ''}${medal ? ' medal' : ''}`} key={entry.user_id} style={{ cursor: entry.user_id !== user.id ? 'pointer' : 'default' }} onClick={() => entry.user_id !== user.id && setSelectedUser(entry)}>
+                    <span className="rank">{medal || entry.rank}</span>
+                    <div className="player-cell">
+                      <span className="avatar small">{initials(entry.username)}</span>
+                      <b>{entry.username}</b>
+                      {entry.user_id === user.id && <em>{t('standings.me')}</em>}
+                    </div>
+                    <strong>{entry.points}</strong>
                   </div>
-                  <strong>{entry.points}</strong>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
@@ -1429,7 +1435,6 @@ function AppShell() {
 
         <div className="header-controls">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
-          <LanguageSwitcher />
           <button className="profile-mini" onClick={() => selectTab('profile')} aria-label={t('common.myProfile')} title={t('common.myProfile')}>
             <span className="avatar">{initials(user.username)}</span>
             <span className="online-dot" />
