@@ -144,6 +144,8 @@ const translations = {
       confirmDelete: (name) => `Supprimer la ligue "${name}" ? Cette action est irréversible.`,
       delete: 'Supprimer', noLeagues: 'Aucune ligue.',
       by: 'par',
+      sendReminder: 'Envoyer un reminder',
+      notificationSent: (n) => `Email envoyé à ${n} utilisateurs`,
     },
     footer: { tagline: 'Le terrain des pronostiqueurs tunisiens.', copyright: '© 2026 Pronos Tunisie' },
     activeLeague: 'Ligue active', change: 'changer',

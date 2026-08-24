@@ -1209,6 +1209,8 @@ function AdminPage({ user }) {
   const [homeGoals, setHomeGoals] = useState('');
   const [awayGoals, setAwayGoals] = useState('');
   const [banner, setBanner] = useState(null);
+  const [notifGW, setNotifGW] = useState(1);
+  const [notifSending, setNotifSending] = useState(false);
   const notify = useToast();
 
   const { data: matches, isLoading, isError, error, refetch } = useQuery({
@@ -1261,6 +1263,23 @@ function AdminPage({ user }) {
     }
   };
 
+  const sendGameweekReminder = async () => {
+    if (!window.confirm(`Envoyer un reminder pour la Journée ${notifGW} à tous les utilisateurs?`)) return;
+    setNotifSending(true);
+    try {
+      const res = await api.post('/admin/send-notification', {
+        notification_type: 'gameweek_reminder',
+        gameweek: notifGW,
+      });
+      setBanner({ ok: true, text: `✉️ ${res.data.message}` });
+      setTimeout(() => setBanner(null), 5000);
+    } catch (err) {
+      setBanner({ ok: false, text: errMsg(err, t('common.error')) });
+    } finally {
+      setNotifSending(false);
+    }
+  };
+
   return (
     <section className="page active">
       <div className="hero-row compact">
@@ -1273,6 +1292,7 @@ function AdminPage({ user }) {
       <div className="admin-tabs">
         <button className={`admin-tab${tab === 'matches' ? ' active' : ''}`} onClick={() => { setTab('matches'); setBanner(null); }}>{t('admin.matchResults')}</button>
         <button className={`admin-tab${tab === 'leagues' ? ' active' : ''}`} onClick={() => { setTab('leagues'); setBanner(null); }}>{t('admin.manageLeagues')}</button>
+        <button className={`admin-tab${tab === 'notifications' ? ' active' : ''}`} onClick={() => { setTab('notifications'); setBanner(null); }}>🔔 Notifications</button>
       </div>
 
       {banner && <div className={`admin-banner ${banner.ok ? 'ok' : 'err'}`}>{banner.text}</div>}
@@ -1339,6 +1359,70 @@ function AdminPage({ user }) {
             </div>
           ))}
           {(!leagues || leagues.length === 0) && <div className="empty-state">{t('admin.noLeagues')}</div>}
+        </div>
+      )}
+
+      {tab === 'notifications' && (
+        <div className="admin-notifications">
+          <div className="notification-card">
+            <div className="notif-header">
+              <i className="fa-solid fa-bell" />
+              <h3>🔔 Reminder Journée</h3>
+              <p>Envoyer un email de rappel à tous les utilisateurs pour faire leurs pronostics</p>
+            </div>
+
+            <div className="notif-form">
+              <label>Sélectionner la Journée:</label>
+              <input
+                type="number"
+                min="1"
+                max="14"
+                value={notifGW}
+                onChange={(e) => setNotifGW(parseInt(e.target.value))}
+                placeholder="Journée"
+                className="notif-input"
+              />
+              
+              <button
+                className={`primary-btn${notifSending ? ' loading' : ''}`}
+                onClick={sendGameweekReminder}
+                disabled={notifSending}
+              >
+                {notifSending ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin" /> Envoi en cours…
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-paper-plane" /> Envoyer Reminder Journée {notifGW}
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="notif-preview">
+              <h4>📧 Aperçu de l'email:</h4>
+              <div className="preview-box">
+                <p><strong>Sujet:</strong> ⏰ Pronos Tunisie — Journée {notifGW} démarre demain!</p>
+                <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid var(--border)' }} />
+                <p><strong>Contenu:</strong></p>
+                <p>Un email catchy avec:</p>
+                <ul style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  <li>✅ Rappel personnel avec le nom de l'utilisateur</li>
+                  <li>✅ Explications du système de points</li>
+                  <li>✅ Bouton CTA pour aller faire les pronos</li>
+                  <li>✅ Tip Pro sur les cotes</li>
+                  <li>✅ Design coloré avec la couleur de la marque</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="notif-stats">
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                💡 <strong>Conseil:</strong> Envoie ce reminder 24h avant le début de la journée pour de meilleurs résultats d'engagement.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </section>
