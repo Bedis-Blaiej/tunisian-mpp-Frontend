@@ -124,6 +124,8 @@ h2 { font-family: "Barlow Condensed", sans-serif; font-size: 25px; margin-bottom
 .round-selector strong { font-family: "Barlow Condensed"; font-size: 32px; }
 .round-arrow, .icon-btn { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 50%; background: var(--surface-2); color: white; }
 .round-arrow:hover, .icon-btn:hover { border-color: rgba(215,25,32,.5); color: var(--red-bright); }
+.round-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+.round-arrow:disabled:hover { border-color: var(--border); color: white; }
 
 .stat-strip { display: grid; grid-template-columns: repeat(3, 1fr) 1.7fr; gap: 10px; }
 .mini-stat, .round-progress { background: rgba(255,255,255,.035); border: 1px solid var(--border); border-radius: 13px; padding: 13px; }

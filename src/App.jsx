@@ -598,6 +598,53 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
 function PredictionsPage({ league, user }) {
   const { t } = useLanguage();
   const [gameweek, setGameweek] = useState(1);
+  const [currentGW, setCurrentGW] = useState(1);
+
+  // Fetch all matches to determine current gameweek
+  const { data: allMatches } = useQuery({
+    queryKey: ['all-matches'],
+    queryFn: async () => {
+      try {
+        const matches = await Promise.all(
+          Array.from({ length: 14 }, (_, i) =>
+            api.get('/matches', { params: { gameweek: i + 1 } }).then(r => r.data).catch(() => [])
+          )
+        );
+        return matches;
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  // Determine current gameweek on mount or when allMatches changes
+  useEffect(() => {
+    if (allMatches && allMatches.length > 0) {
+      // Find the latest gameweek with unfinished matches
+      for (let i = allMatches.length - 1; i >= 0; i--) {
+        const hasUnfinished = allMatches[i]?.some((m) => m.status !== 'finished');
+        if (hasUnfinished) {
+          setCurrentGW(i + 1);
+          setGameweek(i + 1);
+          return;
+        }
+      }
+      // If all finished, show the latest gameweek
+      setCurrentGW(allMatches.length);
+      setGameweek(allMatches.length);
+    }
+  }, [allMatches]);
+
+  const canGoPrev = gameweek > 1;
+  const canGoNext = gameweek < 14;
+
+  const goPrevGameweek = () => {
+    if (canGoPrev) setGameweek(gameweek - 1);
+  };
+
+  const goNextGameweek = () => {
+    if (canGoNext) setGameweek(gameweek + 1);
+  };
 
   const { data: matches, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['matches', gameweek],
@@ -652,9 +699,9 @@ function PredictionsPage({ league, user }) {
           <p className="page-intro">{t('predictions.heroSub')}</p>
         </div>
         <div className="round-selector">
-          <button className="round-arrow" onClick={() => setGameweek((g) => Math.max(1, g - 1))}><i className="fa-solid fa-chevron-left" /></button>
+          <button className="round-arrow" onClick={goPrevGameweek} disabled={!canGoPrev}><i className="fa-solid fa-chevron-left" /></button>
           <div><small>{t('predictions.roundLabel')}</small><strong>{String(gameweek).padStart(2, '0')}</strong></div>
-          <button className="round-arrow" onClick={() => setGameweek((g) => g + 1)}><i className="fa-solid fa-chevron-right" /></button>
+          <button className="round-arrow" onClick={goNextGameweek} disabled={!canGoNext}><i className="fa-solid fa-chevron-right" /></button>
         </div>
       </div>
 
@@ -1487,7 +1534,7 @@ function AppShell() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const openLeague = (l) => { setLeague(l); selectTab('predictions'); };
+  const openLeague = (l) => { setLeague(l); selectTab('standings'); };
 
   const toggleTheme = () => setTheme((currentTheme) => currentTheme === 'light' ? 'dark' : 'light');
 
