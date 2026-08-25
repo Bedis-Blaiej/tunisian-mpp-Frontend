@@ -597,43 +597,7 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
 // ============ MES PRONOS ============
 function PredictionsPage({ league, user }) {
   const { t } = useLanguage();
-  const [gameweek, setGameweek] = useState(1);
-  const [currentGW, setCurrentGW] = useState(1);
-
-  // Fetch all matches to determine current gameweek
-  const { data: allMatches } = useQuery({
-    queryKey: ['all-matches'],
-    queryFn: async () => {
-      try {
-        const matches = await Promise.all(
-          Array.from({ length: 14 }, (_, i) =>
-            api.get('/matches', { params: { gameweek: i + 1 } }).then(r => r.data).catch(() => [])
-          )
-        );
-        return matches;
-      } catch {
-        return [];
-      }
-    },
-  });
-
-  // Determine current gameweek on mount or when allMatches changes
-  useEffect(() => {
-    if (allMatches && allMatches.length > 0) {
-      // Find the latest gameweek with unfinished matches
-      for (let i = allMatches.length - 1; i >= 0; i--) {
-        const hasUnfinished = allMatches[i]?.some((m) => m.status !== 'finished');
-        if (hasUnfinished) {
-          setCurrentGW(i + 1);
-          setGameweek(i + 1);
-          return;
-        }
-      }
-      // If all finished, show the latest gameweek
-      setCurrentGW(allMatches.length);
-      setGameweek(allMatches.length);
-    }
-  }, [allMatches]);
+  const [gameweek, setGameweek] = useState(2);
 
   const canGoPrev = gameweek > 1;
   const canGoNext = gameweek < 14;
