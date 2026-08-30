@@ -91,6 +91,7 @@ const translations = {
       itsYou: "C'est toi 👑", currentLeader: 'Leader actuel',
       points: 'points', rank: 'Rang', player: 'Joueur', pointsCol: 'Points', me: 'Moi',
       nobodyYet: "Personne n'a encore de points dans cette ligue.",
+      predictions: 'Ses pronos', noPredictions: 'Aucun pronostic sur les matchs terminés.',
     },
     leagues: {
       eyebrow: 'Communauté', title: 'Mes ligues.', sub: 'Crée une ligue privée ou rejoins celle de tes amis.',

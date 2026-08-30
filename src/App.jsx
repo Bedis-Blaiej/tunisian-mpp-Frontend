@@ -912,23 +912,76 @@ function StandingsPage({ league, user }) {
 
             {!predLoading && selectedUserPredictions && selectedUserPredictions.length > 0 && (
               <div className="user-predictions-list">
-                {selectedUserPredictions.map((pred) => (
-                  <div className="pred-item" key={pred.id}>
-                    <div className="pred-gw">J.{pred.gameweek}</div>
-                    <div className="pred-match">
-                      <span className="team">{pred.home_team}</span>
-                      <span className="score-actual">{pred.actual_home_goals} — {pred.actual_away_goals}</span>
-                      <span className="team away">{pred.away_team}</span>
+                {selectedUserPredictions.map((pred) => {
+                  const isCorrect = pred.actual_home_goals === pred.predicted_home_goals && pred.actual_away_goals === pred.predicted_away_goals;
+                  const isExact = pred.is_exact_match;
+                  const hasJoker = pred.x2_applied;
+                  
+                  return (
+                    <div className={`pred-item${isCorrect ? ' correct' : ''}${isExact ? ' exact' : ''}`} key={pred.id}>
+                      <div className="pred-gw">J.{pred.gameweek}</div>
+                      
+                      <div className="pred-match">
+                        <div className="teams">
+                          <span className="team home">{pred.home_team}</span>
+                          <span className="score-actual">{pred.actual_home_goals} — {pred.actual_away_goals}</span>
+                          <span className="team away">{pred.away_team}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="pred-prediction">
+                        <div className="label">Prédiction:</div>
+                        <div className="score">{pred.predicted_home_goals} — {pred.predicted_away_goals}</div>
+                        <div className="status-badge">
+                          {isExact ? (
+                            <span className="badge exact">🎯 Score exact!</span>
+                          ) : isCorrect ? (
+                            <span className="badge correct">✓ Correct</span>
+                          ) : (
+                            <span className="badge missed">✗ Manqué</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="pred-breakdown">
+                        <div className="breakdown-header">Points gagnés:</div>
+                        <div className="breakdown-items">
+                          {pred.points_earned > 0 ? (
+                            <>
+                              {isCorrect && (
+                                <div className="breakdown-item">
+                                  <span className="label">Score correct:</span>
+                                  <span className="value">+{pred.base_points || pred.points_earned} pts</span>
+                                </div>
+                              )}
+                              {isExact && (
+                                <div className="breakdown-item bonus">
+                                  <span className="label">Bonus exact match:</span>
+                                  <span className="value">+10 pts</span>
+                                </div>
+                              )}
+                              {hasJoker && (
+                                <div className="breakdown-item joker">
+                                  <span className="label">Joker ×2 appliqué:</span>
+                                  <span className="value">×2</span>
+                                </div>
+                              )}
+                              <div className="breakdown-total">
+                                <span className="label">Total:</span>
+                                <span className="total-points">+{pred.points_earned}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="breakdown-item missed">
+                              <span className="label">Aucun point</span>
+                              <span className="value">0 pts</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="pred-prediction">
-                      <span className="label">{t('matchCard.yourScore')}:</span>
-                      <span className="score">{pred.predicted_home_goals} — {pred.predicted_away_goals}</span>
-                    </div>
-                    <div className={`pred-points${pred.points_earned > 0 ? ' positive' : ''}`}>
-                      {pred.points_earned > 0 ? `+${pred.points_earned}` : '0'} {pred.is_exact_match && pred.points_earned > 0 ? '🎯' : ''}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
