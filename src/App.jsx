@@ -597,7 +597,8 @@ function MatchCard({ match, leagueId, existingPrediction, x2Status, featured, on
 // ============ MES PRONOS ============
 function PredictionsPage({ league, user }) {
   const { t } = useLanguage();
-  const [gameweek, setGameweek] = useState(2);
+  const [gameweek, setGameweek] = useState(1);
+  const autoSelectedRef = useRef(false);
 
   const canGoPrev = gameweek > 1;
   const canGoNext = gameweek < 14;
@@ -609,6 +610,36 @@ function PredictionsPage({ league, user }) {
   const goNextGameweek = () => {
     if (canGoNext) setGameweek(gameweek + 1);
   };
+
+  // Fetch every match once (unfiltered) purely to auto-detect which gameweek
+  // to open by default: the one right after the last fully-finished gameweek.
+  const { data: allMatches } = useQuery({
+    queryKey: ['matches-all-gameweeks'],
+    queryFn: async () => (await api.get('/matches')).data,
+  });
+
+  useEffect(() => {
+    if (autoSelectedRef.current || !allMatches || allMatches.length === 0) return;
+
+    const byGameweek = {};
+    allMatches.forEach((m) => {
+      if (!byGameweek[m.gameweek]) byGameweek[m.gameweek] = [];
+      byGameweek[m.gameweek].push(m);
+    });
+
+    let lastFullyFinishedGw = 0;
+    Object.keys(byGameweek)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .forEach((gw) => {
+        const allFinished = byGameweek[gw].every((m) => m.status === 'finished');
+        if (allFinished && gw > lastFullyFinishedGw) lastFullyFinishedGw = gw;
+      });
+
+    const nextGameweek = Math.min(14, Math.max(1, lastFullyFinishedGw + 1));
+    setGameweek(nextGameweek);
+    autoSelectedRef.current = true;
+  }, [allMatches]);
 
   const { data: matches, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['matches', gameweek],
